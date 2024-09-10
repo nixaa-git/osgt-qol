@@ -1,15 +1,24 @@
 #pragma once
+#include "memory.hpp"
 #include "minhook/minhook.h"
-#include <cstdio>
-#include <type_traits>
+#include "pattern.hpp"
+#include <windows.h>
 
 namespace hooking
 {
 
 inline bool initialized = false;
 
-// Hook a function.
+// Hook a function via address.
 template <typename F> bool hookFunction(F target, F detour, F* original);
+
+// Hook a function via IDA pattern (direct).
+template <typename F>
+bool hookFunctionPatternDirect(const std::string& target, F detour, F* original);
+
+// Hook a function via IDA pattern (resolve function call).
+template <typename F>
+bool hookFunctionPatternCall(const std::string& target, F detour, F* original, size_t offset = 0);
 
 } // namespace hooking
 
@@ -42,6 +51,51 @@ template <typename F> bool hookFunction(F target, F detour, F* original)
         return false;
     }
     return true;
+}
+
+template <typename F>
+bool hookFunctionPatternDirect(const std::string& target, F detour, F* original)
+{
+    // Find pattern address and hook it.
+    auto pattern = pattern::parseIDA(target);
+    if (!pattern.has_value())
+    {
+        std::printf("Failed to parse pattern '%s'.\n", target.c_str());
+        return false;
+    }
+    auto addr = memory::find<F>(pattern.value());
+    if (addr == nullptr)
+    {
+        std::printf("Failed to find pattern '%s'.\n", target.c_str());
+        return false;
+    }
+    return hookFunction<F>(addr, detour, original);
+}
+
+template <typename F>
+bool hookFunctionPatternCall(const std::string& target, F detour, F* original, size_t offset)
+{
+    // Find pattern address and hook it.
+    auto pattern = pattern::parseIDA(target);
+    if (!pattern.has_value())
+    {
+        std::printf("Failed to parse pattern '%s'.\n", target.c_str());
+        return false;
+    }
+    auto addr = memory::find<F>(pattern.value());
+    if (addr == nullptr)
+    {
+        std::printf("Failed to find pattern '%s'.\n", target.c_str());
+        return false;
+    }
+    // Resolve function call.
+    auto call = memory::resolveRelCall(addr + offset);
+    if (call == nullptr)
+    {
+        std::printf("Failed to resolve call at 0x%p.\n", addr + offset);
+        return false;
+    }
+    return hookFunction<F>(addr, detour, original);
 }
 
 } // namespace hooking
