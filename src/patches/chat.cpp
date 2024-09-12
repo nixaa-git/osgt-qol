@@ -37,7 +37,10 @@ class LegacyChatPatch : public game::BasePatch
                                        &real::TabComponentAddTabButton);
 
         // Patch out various iPadMapX(...) calls.
-        // In order: CreateInputChatBar, AddMainMenuControls, AddMainMenuControls (Large Screen).
+        // These patches primarily focus on the iPadMapX call and prepending MOVSS instructions.
+        // Nopping these out result in scaling and alignment being as they were in old chat UI.
+        // On CreateInputChatBar, it left-aligns the input bar. MainMenuControls nops patch icon
+        // scaling. In order: CreateInputChatBar, AddMainMenuControls (+ Large Screen variant).
         std::vector<iPadMapXCallData> padMapCalls = {
             {"48 8B C8 E8 ? ? ? ? F3 0F 10 ? ? ? ? ? E8 ? ? ? ? 0F 28 F0 45 0F 57 DB", 16, 8},
             {"41 0F 28 C3 E8 ? ? ? ? F3 0F 10 ? ? ? ? ? E8 ? ? ? ? 44 0F 28 C0", 9, 13},
@@ -52,6 +55,10 @@ class LegacyChatPatch : public game::BasePatch
         }
 
         // Patch out CreateLogOverlay one separately, need to XORPS XMM6 register afterwards.
+        // We need to do this, because XMM0 was set with data before. We are skipping over a
+        // MOVSS instruction and subsequent call to iPadMapX. The game originally then tries
+        // to copy XMM0 register into XMM6, causing text at random chance to appear way off-
+        // screen. We need XMM6 to start at 0.0, so we replace the MOVSS with a XORPS.
         auto addr = game.findMemoryPattern<uint8_t*>(
             "48 8D 4D 38 E8 ? ? ? ? F3 0F 10 ? ? ? ? ? E8 ? ? ? ? 0F 28 F0");
         if (addr == nullptr)
@@ -60,14 +67,18 @@ class LegacyChatPatch : public game::BasePatch
         utils::writeMemoryBuffer(reinterpret_cast<uint8_t*>(addr) + 22, {0x0F, 0x57, 0xF6});
 
         // Patch out TabComponent padding in LogTextOffset.
+        // This is required, because otherwise, even though we patched out tabs from never
+        // appearing on-screen, LogOverlay's text container gets resized when TabContainer
+        // exists. By changing JBE instruction to a JMP, this resizing logic is always skipped.
         addr = game.findMemoryPattern<uint8_t*>(
             "76 40 0F BE ? ? ? ? ? F3 0F 2C ? ? ? ? ? 03 C8 29 ? ? ? ? ? F3 0F 10 B3 00 02");
         if (addr == nullptr)
             throw std::runtime_error("Failed to find LogTextOffset pattern.");
-        // Change JBE to JMP to always skip past this function.
         utils::fillMemory(addr, 1, 0xEB);
 
         // Remove the guild/leaderboards icon from MainMenuControls.
+        // This patch nops the ADDSS instructions responsible for offsetting the gems counter.
+        // As a result, the gem counter is back on its legacy positioning.
         addr = game.findMemoryPattern<uint8_t*>("E8 ? ? ? ? F3 0F 58 78 04 F3 0F 58 F7 F3 0F 10");
         if (addr == nullptr)
             throw std::runtime_error("Failed to find MainMenuControls pattern.");
@@ -75,6 +86,9 @@ class LegacyChatPatch : public game::BasePatch
         utils::nopMemory(addr + 5, 9);
 
         // Patch out the "`7[S]``" string.
+        // The old chat UI never had any classification for System/World/Private/etc messages,
+        // instead it relied on client giving contextual clues by message formatting on what
+        // the message type was.
         addr = game.findMemoryPattern<uint8_t*>("60 37 5B 53 5D 20 60 60 00");
         if (addr == nullptr)
             throw std::runtime_error("Failed to find `7[S]`` string.");
