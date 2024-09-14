@@ -82,6 +82,9 @@ class GameHarness
     // after the patch applying loop logic.
     void updateWindowTitle();
 
+    // Retrieves a copy of applied patches count.
+    size_t getAppliedPatchCount() { return appliedPatchCount; }
+
     GameHarness(GameHarness const&) = delete;
     void operator=(GameHarness const&) = delete;
 

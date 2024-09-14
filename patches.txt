@@ -13,3 +13,9 @@ Remove chat margin, chat tabs and [S] chat stuff.
  
 Remove guild icon gap.
 +no_guild_icon
+
+Currently makes the dark line middle of screen with beach weather less pronounced.
++weather_render_fix
+
+Adds OSGT-QOL credits section
++about_menu_attrib

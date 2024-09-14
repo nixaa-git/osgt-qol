@@ -15,6 +15,8 @@ set (SOURCES
     src/patches/integrity.cpp
     src/patches/chat.cpp
     src/patches/audio.cpp
+    src/patches/render.cpp
+    src/patches/aboutmenu.cpp
 )
 
 set (SOURCES_MH
@@ -26,5 +28,6 @@ set (SOURCES_MH
 
 add_library(dinput8 SHARED ${SOURCES} ${SOURCES_MH})
 # Don't use /W4, it's too noisy.
-target_compile_options(dinput8 PRIVATE /W3)
+# We need hash_map for Entity class in older game versions
+target_compile_options(dinput8 PRIVATE /W3 /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS)
 target_include_directories(dinput8 PRIVATE ${CMAKE_SOURCE_DIR}/src)
