@@ -4,13 +4,11 @@
 class Entity
 {
   public:
-    EntityComponent* GetComponentByName(std::string key)
-    {
-        for (const auto& comp : m_components)
-            if (comp->name == key)
-                return comp;
-        return nullptr;
-    }
+    // Don't include ctor or anything yet. We don't have boost signals.
+
+    void SetName(std::string name);
+    std::string GetName() { return m_name; }
+
     Entity* GetEntityByName(std::string key)
     {
         for (const auto& ent : m_children)
@@ -18,6 +16,29 @@ class Entity
                 return ent;
         return nullptr;
     }
+    EntityComponent* GetComponentByName(std::string key)
+    {
+        for (const auto& comp : m_components)
+            if (comp->GetName() == key)
+                return comp;
+        return nullptr;
+    }
+
+    VariantDB* GetShared() { return &m_sharedDB; }
+    Variant* GetVar(const std::string& varName) { return m_sharedDB.GetVar(varName); }
+    Variant* GetVarWithDefault(const std::string& varName, const Variant& var)
+    {
+        return m_sharedDB.GetVarWithDefault(varName, var);
+    }
+
+    Entity* GetParent() { return m_pParent; }
+    void SetParent(Entity* pEntity) { m_pParent = pEntity; }
+
+    // We do not include Function methods right now.
+
+    std::list<Entity*>* GetChildren() { return &m_children; }
+    std::list<EntityComponent*>* GetComponents() { return &m_components; }
+
     void PrintTreeAsText(int indent = 0)
     {
         std::string us;
@@ -35,7 +56,7 @@ class Entity
             {
                 if (it != m_components.begin())
                     us += ", ";
-                us += (*it)->name;
+                us += (*it)->GetName();
             }
 
             us += ")";
@@ -48,7 +69,9 @@ class Entity
             ent->PrintTreeAsText(indent + 1);
         }
     }
-    uint8_t trackable_signal[72];             // 0
+
+  private:
+    uint8_t pad[72];                          // 0
     std::string m_name;                       // 72
     std::list<Entity*> m_children;            // 104
     std::list<EntityComponent*> m_components; // 120
@@ -57,4 +80,6 @@ class Entity
     bool m_bTaggedForDeletion;                // 288
     int m_recursiveFilterReferences;          // 292
     Variant* m_pPosVarCache;                  // 296
+    CL_Vec2f* m_pSizeCache;                   // 304
+    uint32_t* m_pAlignment;                   // 312
 };

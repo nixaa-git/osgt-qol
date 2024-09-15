@@ -41,12 +41,12 @@ class AboutMenuAttribution : public game::BasePatch
         real::AboutMenuAddScrollContent(pScrollChild);
         // We take over TextBox2 (the last Entity under children) and insert our own
         // attribution logic to it.
-        Entity* pTextBox2 = pScrollChild->m_children.back();
-        EntityComponent* textComponent = pTextBox2->GetComponentByName("TextBoxRender");
-        if (textComponent != nullptr)
+        Entity* pTextBox2 = pScrollChild->GetChildren()->back();
+        EntityComponent* pTextComponent = pTextBox2->GetComponentByName("TextBoxRender");
+        if (pTextComponent != nullptr)
         {
-            Variant* textVariant = textComponent->sharedDB.Get("text");
-            if (textVariant != nullptr)
+            Variant* pTextVariant = pTextComponent->GetShared()->GetVarIfExists("text");
+            if (pTextVariant != nullptr)
             {
                 auto& game = game::GameHarness::get();
                 // Create our attribution.
@@ -54,11 +54,9 @@ class AboutMenuAttribution : public game::BasePatch
                     "\n`wOSGT-QOL V1.0``\n\n`6Game modification created by `whouz`` and "
                     "`wCernodile``. There are currently `w{}`` patches loaded.``",
                     game.getAppliedPatchCount() - 1);
-                real::SetTextEntity(pTextBox2, textVariant->m_string + osgtQolCredits);
+                real::SetTextEntity(pTextBox2, pTextVariant->GetString() + osgtQolCredits);
                 // Signal proton to resize the menu for our text to be visible.
-                VariantList vl;
-                vl.m_variant[0].m_pVoid = (void*)pScrollChild->m_pParent->m_pParent;
-                vl.m_variant[0].m_type = Variant::TYPE_ENTITY;
+                VariantList vl(pScrollChild->GetParent()->GetParent());
                 real::ResizeScrollBounds(&vl);
             }
         }

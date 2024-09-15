@@ -2,10 +2,7 @@
 #include "game/variant.hpp"
 #include <hash_map>
 
-
 #pragma pack(push, 1)
-typedef stdext::hash_map<std::string, Variant*> dataList;
-typedef stdext::hash_map<std::string, void*> functionList;
 class VariantDB
 {
   public:
@@ -22,7 +19,7 @@ class VariantDB
         printf("*********************\n");
     }
 
-    Variant* Get(const std::string& key) noexcept
+    Variant* GetVarIfExists(const std::string& key)
     {
         for (const auto& [name, variant] : m_data)
             if (name == key)
@@ -31,10 +28,36 @@ class VariantDB
         return nullptr;
     }
 
+    Variant* GetVarWithDefault(const std::string& key, const Variant& vDefault)
+    {
+        Variant* pData = GetVarIfExists(key);
+
+        if (!pData)
+        {
+            pData = new Variant(vDefault);
+            m_data[key] = pData;
+        }
+
+        return pData;
+    }
+
+    Variant* GetVar(const std::string& key)
+    {
+        Variant* pData = GetVarIfExists(key);
+
+        if (!pData)
+        {
+            pData = new Variant;
+            m_data[key] = pData;
+        }
+
+        return pData;
+    }
+
   private:
-    dataList m_data;
-    functionList m_functionData;
-    dataList::iterator m_nextItor;
+    stdext::hash_map<std::string, Variant*> m_data;
+    stdext::hash_map<std::string, void*> m_functionData;
+    stdext::hash_map<std::string, Variant*>::iterator m_nextItor;
 };
 
 #pragma pack(pop)
