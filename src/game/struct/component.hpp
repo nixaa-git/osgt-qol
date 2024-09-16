@@ -1,5 +1,5 @@
 #pragma once
-#include "game/variantdb.hpp"
+#include "variantdb.hpp"
 
 class Entity;
 class EntityComponent

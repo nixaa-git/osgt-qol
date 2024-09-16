@@ -2,13 +2,12 @@
 #include <format>
 #include <stdexcept>
 #include <string>
-#include <unordered_map>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "minhook/minhook.h"
-#include "utils.hpp"
+#include "utils/utils.hpp"
+#include <minhook.h>
 
 // Utility macro for easy declaration of game functions. This will create a global function pointer
 // alias called <name>_t, and create an instance of said function pointer in the real namespace.
@@ -27,14 +26,6 @@
 
 namespace game
 {
-
-// Barebones abstract base patch class. All game patches must derive from this class.
-class BasePatch
-{
-  public:
-    virtual void apply() const = 0;
-    virtual ~BasePatch() = default;
-};
 
 // Responsible for interacting with internal game mechanics and memory.
 class GameHarness
@@ -67,23 +58,14 @@ class GameHarness
     template <typename F>
     void hookFunctionPatternCall(const std::string& pattern, F detour, F* original);
 
-    // Register a new game patch.
-    void registerPatch(const std::string& name, BasePatch* patch);
+    // Changes the game window title to the specified string.
+    void setWindowTitle(const std::string& title);
 
-    // Applies a specific patch by name. Throws a std::runtime_error if the patch is not found,
-    // or if an error occurs while applying the patch.
-    void applyPatch(const std::string& name);
-
-    // Applies all patches registered in the patch map. Throws a std::runtime_error if an error
-    // occurs while applying a patch.
-    void applyAllPatches();
-
-    // Updates game window title to the OSGT-QOL specific format. Usually you want to call this
-    // after the patch applying loop logic.
-    void updateWindowTitle();
-
-    // Retrieves a copy of applied patches count.
-    size_t getAppliedPatchCount() { return appliedPatchCount; }
+    // Sets the game window visibility.
+    inline void setWindowVisible(bool visible) const
+    {
+        ShowWindow(window, visible ? SW_SHOW : SW_HIDE);
+    }
 
     GameHarness(GameHarness const&) = delete;
     void operator=(GameHarness const&) = delete;
@@ -98,39 +80,10 @@ class GameHarness
     // Main game window handle.
     HWND window;
 
-    // Number of patches applied.
-    size_t appliedPatchCount = 0;
-
-    // Map of registered game patches.
-    std::unordered_map<std::string, BasePatch*> patches;
-
     GameHarness() = default;
 };
 
-// Utility class made for automatic/static patch registration within GameHarness. Ideally, this
-// shouldn't be used directly. Use the REGISTER_GAME_PATCH macro instead.
-template <class T> class RegisterPatch
-{
-    static_assert(std::is_base_of_v<BasePatch, T>, "T must derive from BasePatch.");
-
-  public:
-    T instance;
-    // Add pointer to instance to the GameHarness patch map.
-    inline RegisterPatch(const std::string& name)
-    {
-        GameHarness::get().registerPatch(name, &instance);
-    }
-};
-
-// Utility macro for easy registration of game patches. Creates an instanc of RegisterPatch<type>
-// within the patch namespace.
-#define REGISTER_GAME_PATCH(type, name)                                                            \
-    namespace patch                                                                                \
-    {                                                                                              \
-    game::RegisterPatch<type> patch##name(#name);                                                  \
-    }
-
-}; // namespace game
+} // namespace game
 
 ///////////////////////////////////
 // TEMPLATE FUNCTION DEFINITIONS //
@@ -190,7 +143,7 @@ void game::GameHarness::hookFunctionPatternDirect(const std::string& pattern, F 
 }
 
 template <typename F>
-void hookFunctionPatternCall(const std::string& pattern, F detour, F* original)
+void game::GameHarness::hookFunctionPatternCall(const std::string& pattern, F detour, F* original)
 {
     auto addr = findMemoryPattern<F>(pattern);
     if (addr == nullptr)

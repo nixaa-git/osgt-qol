@@ -1,5 +1,6 @@
-#include "game.hpp"
-#include "utils.hpp"
+#include "game/game.hpp"
+#include "patch/patch.hpp"
+#include "utils/utils.hpp"
 #include <cstddef>
 #include <cstdint>
 
@@ -24,7 +25,7 @@ struct iPadMapXCallData
     size_t size;
 };
 
-class LegacyChatPatch : public game::BasePatch
+class LegacyChatPatch : public patch::BasePatch
 {
   public:
     void apply() const override
@@ -99,9 +100,9 @@ class LegacyChatPatch : public game::BasePatch
         return real::TabComponentAddTabButton(this_, entity, xCoord, unk4, unk5, unk6);
     }
 };
-REGISTER_GAME_PATCH(LegacyChatPatch, enable_legacy_chat);
+REGISTER_USER_GAME_PATCH(LegacyChatPatch, enable_legacy_chat);
 
-class NoGuildIconPatch : public game::BasePatch
+class NoGuildIconPatch : public patch::BasePatch
 {
     void apply() const override
     {
@@ -114,4 +115,4 @@ class NoGuildIconPatch : public game::BasePatch
         utils::nopMemory(addr + 5, 9);
     }
 };
-REGISTER_GAME_PATCH(NoGuildIconPatch, no_guild_icon);
+REGISTER_USER_GAME_PATCH(NoGuildIconPatch, no_guild_icon);

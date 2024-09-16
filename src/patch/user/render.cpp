@@ -1,6 +1,7 @@
-#include "game.hpp"
+#include "game/game.hpp"
+#include "patch/patch.hpp"
 
-class WeatherRenderFix : public game::BasePatch
+class WeatherRenderFix : public patch::BasePatch
 {
   public:
     void apply() const override
@@ -14,4 +15,4 @@ class WeatherRenderFix : public game::BasePatch
         utils::nopMemory(addr, 20);
     }
 };
-REGISTER_GAME_PATCH(WeatherRenderFix, weather_render_fix);
+REGISTER_USER_GAME_PATCH(WeatherRenderFix, weather_render_fix);

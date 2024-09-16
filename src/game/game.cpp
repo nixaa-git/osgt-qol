@@ -37,42 +37,9 @@ void GameHarness::initialize()
     SendMessageA(window, WM_NULL, 0, 0);
 }
 
-void GameHarness::registerPatch(const std::string& name, BasePatch* patch)
+void GameHarness::setWindowTitle(const std::string& title)
 {
-    patches[name] = patch;
-}
-
-void GameHarness::applyPatch(const std::string& name)
-{
-    // Look up the patch by name and apply it.
-    auto it = patches.find(name);
-    if (it == patches.end())
-        throw std::runtime_error(std::format("Patch {} not found.", name));
-    try
-    {
-        it->second->apply();
-        appliedPatchCount++;
-        fprintf(stdout, "Applied patch %s\n", name.c_str());
-    }
-    catch (const std::exception& e)
-    {
-        auto msg = std::format("Failed to apply patch {}: {}", name, e.what());
-        throw std::runtime_error(msg);
-    }
-};
-
-void GameHarness::applyAllPatches()
-{
-    for (const auto& [name, _] : patches)
-        applyPatch(name);
-}
-
-void GameHarness::updateWindowTitle()
-{
-    // - 1 because the integrity bypass patch is always applied.
-    auto count = appliedPatchCount - 1;
-    std::string newTitle = std::format("Growtopia [OSGT-QOL] - {} patches applied", count);
-    SetWindowTextA(window, newTitle.c_str());
+    SetWindowTextA(window, title.c_str());
 }
 
 } // namespace game

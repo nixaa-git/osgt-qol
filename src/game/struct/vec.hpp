@@ -1,4 +1,5 @@
 #pragma once
+
 #pragma pack(push, 1)
 // We don't need full-fat CL_Vec classes, use more lean structs.
 struct Vec2f

@@ -1,4 +1,5 @@
-#include "game.hpp"
+#include "game/game.hpp"
+#include "patch/patch.hpp"
 
 // AudioManagerFMOD::Preload
 REGISTER_GAME_FUNCTION(AudioManagerFMODPreload,
@@ -6,7 +7,7 @@ REGISTER_GAME_FUNCTION(AudioManagerFMODPreload,
                        "D0 01 00 00 48 C7 44 24 38 FE FF FF FF",
                        __fastcall, void, void*, void*, bool, bool, bool, bool)
 
-class AudioStutterPatch : public game::BasePatch
+class AudioStutterPatch : public patch::BasePatch
 {
   public:
     void apply() const override
@@ -31,4 +32,4 @@ class AudioStutterPatch : public game::BasePatch
                                       bForceStreaming);
     }
 };
-REGISTER_GAME_PATCH(AudioStutterPatch, audio_stutter_fix);
+REGISTER_USER_GAME_PATCH(AudioStutterPatch, audio_stutter_fix);

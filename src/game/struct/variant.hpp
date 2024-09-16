@@ -1,9 +1,9 @@
 #pragma once
+#include "vec.hpp"
 #include <format>
 #include <string>
 
 #define WIN32_LEAN_AND_MEAN
-#include "game/vec.hpp"
 #include <windows.h>
 
 class Entity;

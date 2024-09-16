@@ -1,5 +1,5 @@
 #pragma once
-#include "game/variant.hpp"
+#include "variant.hpp"
 #include <hash_map>
 
 #pragma pack(push, 1)

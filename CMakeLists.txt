@@ -1,33 +1,10 @@
 cmake_minimum_required(VERSION 3.12)
 project(osgt-qol LANGUAGES CXX C)
 
+# Only allow compiling via 64-bit MSVC.
 if(NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "Only 64-bit MSVC is supported.")
 endif()
 
-set (SOURCES
-    src/setup.cpp
-    src/game.cpp
-    src/utils.cpp
-    src/dinput8/dinput8.cpp
-    src/dinput8/dinput8.def
-    src/patches/framerate.cpp
-    src/patches/integrity.cpp
-    src/patches/chat.cpp
-    src/patches/audio.cpp
-    src/patches/render.cpp
-    src/patches/aboutmenu.cpp
-)
-
-set (SOURCES_MH
-    src/minhook/buffer.c
-    src/minhook/hook.c
-    src/minhook/trampoline.c
-    src/minhook/hde/hde64.c
-)
-
-add_library(dinput8 SHARED ${SOURCES} ${SOURCES_MH})
-# Don't use /W4, it's too noisy.
-# We need hash_map for Entity class in older game versions
-target_compile_options(dinput8 PRIVATE /W3 /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS)
-target_include_directories(dinput8 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+add_subdirectory(dep)
+add_subdirectory(src)

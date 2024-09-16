@@ -1,4 +1,5 @@
-#include "game.hpp"
+#include "game/game.hpp"
+#include "patch/patch.hpp"
 
 // App::SetFPSLimit
 REGISTER_GAME_FUNCTION(SetFPSLimit,
@@ -11,7 +12,7 @@ REGISTER_GAME_FUNCTION(PetRenderDataUpdate,
                        "48 8B C4 48 89 58 10 48 89 68 18 56 57 41 56 48 81 EC A0 00 00 00 0F B7",
                        __fastcall, void, void*, void*, float);
 
-class FramerateUnlockPatch : public game::BasePatch
+class FramerateUnlockPatch : public patch::BasePatch
 {
   public:
     void apply() const override
@@ -49,4 +50,4 @@ class FramerateUnlockPatch : public game::BasePatch
         real::PetRenderDataUpdate(this_, unk2, delta);
     }
 };
-REGISTER_GAME_PATCH(FramerateUnlockPatch, framerate_unlock);
+REGISTER_USER_GAME_PATCH(FramerateUnlockPatch, framerate_unlock);

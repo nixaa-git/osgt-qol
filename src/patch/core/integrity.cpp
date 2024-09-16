@@ -1,7 +1,8 @@
-#include "game.hpp"
-#include "utils.hpp"
+#include "game/game.hpp"
+#include "patch/patch.hpp"
+#include "utils/utils.hpp"
 
-class IntegrityPatch : public game::BasePatch
+class IntegrityPatch : public patch::BasePatch
 {
   public:
     void apply() const override
@@ -12,4 +13,4 @@ class IntegrityPatch : public game::BasePatch
         utils::nopMemory(addr + 1, 6);
     }
 };
-REGISTER_GAME_PATCH(IntegrityPatch, integrity_bypass);
+REGISTER_CORE_GAME_PATCH(IntegrityPatch, integrity_bypass);

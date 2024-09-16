@@ -1,12 +1,12 @@
-#include "game.hpp"
+#include "game/game.hpp"
+#include "game/struct/entity.hpp"
+#include "patch/patch.hpp"
 #include <format>
 #include <string>
 
-#include "game/entity.hpp"
-
 REGISTER_GAME_FUNCTION(AboutMenuAddScrollContent,
-                       "48 8B C4 55 41 56 41 57 48 8D A8 F8 FB FF FF 48 81 EC F0 04",
-                       __fastcall, void, Entity*);
+                       "48 8B C4 55 41 56 41 57 48 8D A8 F8 FB FF FF 48 81 EC F0 04", __fastcall,
+                       void, Entity*);
 
 REGISTER_GAME_FUNCTION(ResizeScrollBounds,
                        "48 8B C4 55 48 8D 68 A1 48 81 EC D0 00 00 00 48 C7 45 A7 FE FF FF FF 48 89 "
@@ -18,7 +18,7 @@ REGISTER_GAME_FUNCTION(SetTextEntity,
                        "FF 48 89 58 18 48 89 70 20 48",
                        __fastcall, void, Entity*, std::string);
 
-class AboutMenuAttribution : public game::BasePatch
+class AboutMenuAttribution : public patch::BasePatch
 {
   public:
     void apply() const override
@@ -48,18 +48,32 @@ class AboutMenuAttribution : public game::BasePatch
             Variant* pTextVariant = pTextComponent->GetShared()->GetVarIfExists("text");
             if (pTextVariant != nullptr)
             {
-                auto& game = game::GameHarness::get();
-                // Create our attribution.
-                std::string osgtQolCredits = std::format(
-                    "\n`wOSGT-QOL V1.0``\n\n`6Game modification created by `whouz`` and "
-                    "`wCernodile``. There are currently `w{}`` patches loaded.``",
-                    game.getAppliedPatchCount() - 1);
-                real::SetTextEntity(pTextBox2, pTextVariant->GetString() + osgtQolCredits);
+                // Set our attribution.
+                real::SetTextEntity(pTextBox2, pTextVariant->GetString() + GetAttributionText());
                 // Signal proton to resize the menu for our text to be visible.
                 VariantList vl(pScrollChild->GetParent()->GetParent());
                 real::ResizeScrollBounds(&vl);
             }
         }
     }
+
+    // Returns the attribution text to be appended to the about menu. Also includes a list of
+    // applied user patches.
+    static std::string GetAttributionText()
+    {
+        auto patches = patch::PatchManager::get().getAppliedUserPatchList();
+        std::string text =
+            std::format("\nOSGT-QOL V1.0\n`6Game modification created by `wCernodile`` and "
+                        "`whouz``. There are currently `w{}`` patches applied: ",
+                        patches.size());
+        // Create comma-separated list of patches.
+        for (size_t i = 0; i < patches.size(); i++)
+        {
+            text += "`w" + patches[i] + "``";
+            if (i < patches.size() - 1)
+                text += ", ";
+        }
+        return text;
+    }
 };
-REGISTER_GAME_PATCH(AboutMenuAttribution, about_menu_attrib);
+REGISTER_CORE_GAME_PATCH(AboutMenuAttribution, about_menu_attrib);
