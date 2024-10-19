@@ -151,5 +151,5 @@ void game::GameHarness::hookFunctionPatternCall(const std::string& pattern, F de
     auto call = utils::resolveRelativeCall<F>(addr);
     if (call == nullptr)
         throw std::runtime_error(std::format("Failed to resolve call at 0x{:p}.", (void*)addr));
-    hookFunction<F>(addr, detour, original);
+    hookFunction<F>(call, detour, original);
 }
