@@ -77,6 +77,13 @@ REGISTER_GAME_FUNCTION(GetApp, "44 0F 28 F8 E8 ? ? ? ? 48 8B C8 48 8D", __fastca
 REGISTER_GAME_FUNCTION(GetAppCachePath, "40 53 48 83 EC 30 33 C0 48 C7 41 18 0F 00 00 00 48",
                        __fastcall, std::string);
 
+// LogToConsole
+// Params: Text to log
+REGISTER_GAME_FUNCTION(LogToConsole,
+                       "48 89 4C 24 08 48 89 54 24 10 4C 89 44 24 18 4C 89 4C 24 20 53 57 B8 88 10 "
+                       "00 00 ? ? ? ? ? 48 2B E0 48 8B 05 86 E4 2D",
+                       __fastcall, void, const char*);
+
 static std::string serverOverride = "osgt1.cernodile.com";
 class ServerSwitcher : public patch::BasePatch
 {
@@ -94,6 +101,9 @@ class ServerSwitcher : public patch::BasePatch
             game.findMemoryPattern<CreateTextLabelEntity_t>(pattern::CreateTextLabelEntity);
         real::SetupTextEntity = game.findMemoryPattern<SetupTextEntity_t>(pattern::SetupTextEntity);
         real::SlideScreen = game.findMemoryPattern<SlideScreen_t>(pattern::SlideScreen);
+
+        // We want to also inform the user which server they are using.
+        real::LogToConsole = game.findMemoryPattern<LogToConsole_t>(pattern::LogToConsole);
 
         // Nop the original slide-screen so the original function does not start sliding our scene
         // too early. We will call it ourselves later in the hook when we have injected our own
@@ -150,17 +160,24 @@ class ServerSwitcher : public patch::BasePatch
 
         // ..and an accompanying textbox
         // We will append the height of our label to be directly below it for marginY.
-        // We will also make the textbox as wide as the label itself.
+        // We will also make the textbox stretch to same length as non-ID name field.
+        // The larger InputTextEntity is, the more characters it can fit within its bounds.
+        float vSizeX =
+            pOnlineMenu->GetEntityByName("name")->GetShared()->GetVar("size2d")->GetVector2().x;
+        vSizeX += pOnlineMenu->GetEntityByName("name_input_box_online")
+                      ->GetShared()
+                      ->GetVar("size2d")
+                      ->GetVector2()
+                      .x;
         Entity* pServerInput = real::CreateInputTextEntity(
             pOnlineMenu, "osgt_qol_server_input", marginX,
             marginY + pServerLabel->GetShared()->GetVar("size2d")->GetVector2().y, serverOverride,
-            pServerLabel->GetShared()->GetVar("size2d")->GetVector2().x, 0.0, "", "", "");
+            vSizeX, 0.0, "", "", "");
 
         // Make it a bit neater by setting a max length and disallowing going through bounds.
-        pServerInput->GetComponentByName("InputTextRender")->GetVar("inputLengthMax")->Set(32U);
-        pServerInput->GetComponentByName("InputTextRender")
-            ->GetVar("truncateTextIfNeeded")
-            ->Set(1U);
+        EntityComponent* pTextRenderComp = pServerInput->GetComponentByName("InputTextRender");
+        pTextRenderComp->GetVar("inputLengthMax")->Set(32U);
+        pTextRenderComp->GetVar("truncateTextIfNeeded")->Set(1U);
         // InputTextEntity is still an TextEntity, we have to scale it to rest of UI with the helper
         // function.
         real::SetupTextEntity(pServerInput, fontID, fontScale);
@@ -194,6 +211,8 @@ class ServerSwitcher : public patch::BasePatch
         if (URI == "growtopia/server_data.php")
         {
             pVList->Get(0).Set(serverOverride);
+            real::LogToConsole(
+                std::format("Using `w{}`` as the server data provider...", serverOverride).c_str());
         }
         real::HTTPComponentInitAndStart(this_, pVList);
     }
