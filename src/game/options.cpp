@@ -34,6 +34,7 @@ void game::OptionsManager::initialize()
 
     // Resolve our needed functions
     real::CreateSlider = game.findMemoryPattern<CreateSlider_t>(pattern::CreateSlider);
+    real::CreateCheckBox = game.findMemoryPattern<CreateCheckBox_t>(pattern::CreateCheckBox);
     real::BoostSigFire = game.findMemoryPattern<BoostSigFire_t>(pattern::BoostSigFire);
     real::GetApp =
         utils::resolveRelativeCall<GetApp_t>(game.findMemoryPattern<uint8_t*>(pattern::GetApp) + 4);
@@ -84,6 +85,32 @@ void OptionsManager::renderSlider(OptionsManager::GameOption& optionDef, void* p
     vPosY += pSliderComp->GetParent()->GetShared()->GetVar("size2d")->GetVector2().y;
 }
 
+void OptionsManager::renderCheckbox(OptionsManager::GameOption& optionDef, void* pEntityPtr,
+                                    float vPosX, float& vPosY)
+{
+    Entity* pEnt = reinterpret_cast<Entity*>(pEntityPtr);
+
+    // The client uses this for padding, lets do the same for consistency.
+    vPosY += real::iPhoneMapY(20.0);
+
+    // Retrieve fontscale
+    uint32_t fontID;
+    float fontScale;
+    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 20);
+
+    // Retrieve our variant as we need to set checkbox value as its created
+    Variant* pVariant = real::AppGetVar(real::GetApp(), optionDef.varName);
+
+    // The final 4 string args aren't there in Proton, but they are in client. Currently they don't
+    // seem to have much use.
+    Entity* pCheckbox =
+        real::CreateCheckBox(pEnt, optionDef.varName, optionDef.displayName, vPosX, vPosY,
+                             pVariant->GetUINT32() == 1, fontID, fontScale, false, "", "", "");
+
+    // Adjust margin for next option.
+    vPosY += pCheckbox->GetShared()->GetVar("size2d")->GetVector2().y;
+}
+
 void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, void* unk4)
 {
     // Let the game construct options menu for us.
@@ -124,6 +151,11 @@ void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, v
             renderSlider(option, (void*)pScrollChild, vPosX, vPosY);
             break;
         }
+        case game::OptionsManager::OPTION_CHECKBOX:
+        {
+            renderCheckbox(option, (void*)pScrollChild, vPosX, vPosY);
+            break;
+        }
         default:
             break;
         }
@@ -151,6 +183,20 @@ void OptionsManager::OptionsMenuOnSelect(void* pVListPtr)
         //   Back
         Entity* pScrollChild =
             pEnt->GetParent()->GetEntityByName("scroll")->GetEntityByName("scroll_child");
+        // Lets save our checkboxes
+        auto& optionsMgr = game::OptionsManager::get();
+        for (const auto& opt : optionsMgr.options)
+        {
+            if (opt.type != OptionsManager::OPTION_CHECKBOX)
+                continue;
+            // Checkboxes can be found easily with their name.
+            // Boost should ideally direct it to a dedicated "handler" function though.
+            // In the future, a patch should pass on a function of its own for checkboxes on
+            // what to do after a state change, if needed.
+            Entity* pCheckbox = pScrollChild->GetEntityByName(opt.varName);
+            Variant* pVariant = real::AppGetVar(real::GetApp(), opt.varName);
+            pVariant->Set(pCheckbox->GetVar("checked")->GetUINT32());
+        }
         // Lets save our sliders
         // NOTE: Rework when we can use boost signals1.
         std::vector<Entity*> pEnts;

@@ -89,7 +89,6 @@ class Entity
         }
 
         printf("%s\n", us.c_str());
-        m_sharedDB.Print();
 
         for (auto& ent : m_children)
         {

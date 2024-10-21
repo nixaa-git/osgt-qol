@@ -115,12 +115,22 @@ class OptionsManager
         options.push_back(GameOption(OPTION_SLIDER, varName, displayName));
     }
 
+    // Adds a checkbox option to end of GameOptions list.
+    // varName is points to a variable in save.dat.
+    // displayName is the string visibile directly next to the checkbox.
+    void addCheckboxOption(std::string varName, std::string displayName)
+    {
+        options.push_back(GameOption(OPTION_CHECKBOX, varName, displayName));
+    }
+
     // All of the custom options we have made are stored here.
     std::vector<GameOption> options;
 
   private:
     // Helper functions called during the hook to render our options.
     static void renderSlider(OptionsManager::GameOption& optionDef, void* pEntPtr, float vPosX,
+                             float& vPosY);
+    static void renderCheckbox(OptionsManager::GameOption& optionDef, void* pEntPtr, float vPosX,
                              float& vPosY);
 
     // Fastcalls used in hooks

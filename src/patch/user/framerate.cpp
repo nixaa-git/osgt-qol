@@ -1,4 +1,5 @@
 #include "game/game.hpp"
+#include "game/signatures.hpp"
 #include "patch/patch.hpp"
 
 // App::SetFPSLimit
@@ -22,6 +23,24 @@ class FramerateUnlockPatch : public patch::BasePatch
         game.hookFunctionPatternDirect<SetFPSLimit_t>(pattern::SetFPSLimit, SetFPSLimit,
                                                       &real::SetFPSLimit);
         SetFPSLimit(nullptr, 60.0f);
+
+        // Users may have a reason to want a bit more generous fps limit.
+        // Some game mechanics can be somewhat unreliable on the 59-60 fps mark.
+        // This also allows 75-90Hz display users to get more tangible benefit out of this patch as
+        // Proton slices some of the fps off anyway.
+        DEVMODE dm;
+        dm.dmSize = sizeof(DEVMODE);
+        if (EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &dm))
+        {
+            if (dm.dmDisplayFrequency < 90)
+            {
+                auto& optionsMgr = game::OptionsManager::get();
+                optionsMgr.addCheckboxOption(
+                    "osgt_qol_fps_min90", "Set FPS Limit minimum value to 90 (may get V-Synced)\n"
+                                          "`5(After exiting press CTRL+F few times to apply)``");
+            }
+        }
+
         // Fix crazy pet movement.
         game.hookFunctionPatternDirect<PetRenderDataUpdate_t>(
             pattern::PetRenderDataUpdate, PetRenderDataUpdate, &real::PetRenderDataUpdate);
@@ -34,7 +53,29 @@ class FramerateUnlockPatch : public patch::BasePatch
         DEVMODE dm;
         dm.dmSize = sizeof(DEVMODE);
         if (EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &dm))
-            real::SetFPSLimit(app, static_cast<float>(dm.dmDisplayFrequency));
+        {
+            float fpsLimit = static_cast<float>(dm.dmDisplayFrequency);
+            // Do not allow over >400fps. The client has a bug where if the game is open for long
+            // enough time it won't respect the fps limit properly anymore, causing it to shoot up.
+            // We do not want that scenario to allow exceeding 500 fps as that's where physics start
+            // to slowly break.
+            if (fpsLimit > 400)
+                fpsLimit = 400;
+            // We also do not want someone unfortunate enough to have a 59Hz default to actively
+            // lose frames.
+            if (fpsLimit < 60)
+                fpsLimit = 60;
+
+            // We present users under 90Hz a checkbox in options whether they want to unlock game
+            // side minimum framerate to 90 in order to remove jankiness introduced by 59 fps
+            // vanilla. They will most likely get bound by GPU driver V-Sync though. On VirtualBox
+            // with a 60Hz display, it did lock the fps to 63 as opposed to 59.
+            // On a no V-Sync scenario, it should be ~84 fps initially.
+            if (fpsLimit < 90 && real::AppGetVar(real::GetApp(), "osgt_qol_fps_min90")->GetUINT32())
+                fpsLimit = 90;
+
+            real::SetFPSLimit(app, fpsLimit);
+        }
         else
             real::SetFPSLimit(app, 60.f);
     }
