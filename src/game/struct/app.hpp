@@ -19,8 +19,6 @@ class App : public BaseApp
     void* GetClient() { return m_pClient; }
     Variant* GetVar(std::string varName) { return m_sharedDB.GetVar(varName); }
 
-    void* dtor;
-
     GameLogicComponent* m_pGameLogic;
     void* m_pTrackHandler; // TrackHandlerComponent*
     ItemInfoManager m_itemInfoManager;

@@ -125,8 +125,7 @@ class ServerSwitcher : public patch::BasePatch
         // "text" label for X coordinate.
         float marginY =
             pOnlineMenu->GetEntityByName("tankid_name_label")->GetVar("pos2d")->GetVector2().y;
-        float marginX =
-            pOnlineMenu->GetEntityByName("text")->GetVar("pos2d")->GetVector2().x;
+        float marginX = pOnlineMenu->GetEntityByName("text")->GetVar("pos2d")->GetVector2().x;
 
         // Create our very own label
         Entity* pServerLabel = real::CreateTextLabelEntity(

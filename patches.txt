@@ -31,3 +31,6 @@ Backports the Bubble Opacity slider and feature.
 
 Adds new hotkeys to the game. Currently it adds keys 1 through 3 to select items from inventory's quickbar.
 +hotkey_patch
+
+Your ears will thank you! Backports Start Music volume slider
++start_music_slider_backport

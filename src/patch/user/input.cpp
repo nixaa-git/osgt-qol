@@ -100,7 +100,6 @@ class HotkeyPatch : public patch::BasePatch
         // nit: InputProvider or the likes for patches to share arcadeinput callbacks?
         if (keyCode >= 600000)
         {
-            // nit: GameLogicComponent and App struct/class
             if (real::GameLogicComponentDialogIsOpen(real::GetApp()->GetGameLogic()))
                 return;
 

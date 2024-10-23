@@ -72,7 +72,7 @@ class GoodNightTitleScreen : public patch::BasePatch
 
     static void ChangeMainMenuWeather(Entity* pGUIEnt)
     {
-        // Lets retrieve MapBGComponent from GUI->MainMenu->MapBGComponent
+        // Lets retrieve MapBGComponent from GUI -> MainMenu
         MapBGComponent* pMapBGComponent = reinterpret_cast<MapBGComponent*>(
             pGUIEnt->GetEntityByName("MainMenu")->GetComponentByName("MapBGComponent"));
 
@@ -106,9 +106,7 @@ class BubbleOpacityBackport : public patch::BasePatch
         // Bubble opacity is a vanilla feature, albeit from future version, it should go in save.dat
         Variant* pVariant = real::GetApp()->GetVar("speech_bubble_opacity");
         if (pVariant->GetType() != Variant::TYPE_FLOAT)
-        {
             pVariant->Set(1.00f);
-        }
 
         // Add the slider back into options. Normally it's between the music/sfx/gfx sliders, but
         // it'd be too messy to ram it between them. OptionsManager will move it to dedicated

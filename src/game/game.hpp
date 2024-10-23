@@ -61,6 +61,9 @@ class GameHarness
     // Changes the game window title to the specified string.
     void setWindowTitle(const std::string& title);
 
+    // Toggles the game's audio through Windows Multimedia API
+    void toggleGameAudio();
+
     // Sets the game window visibility.
     inline void setWindowVisible(bool visible) const
     {
@@ -79,6 +82,12 @@ class GameHarness
 
     // Main game window handle.
     HWND window;
+
+    // Audio mute state
+    bool audioMuted = false;
+
+    // Last audio level state pre-mute
+    DWORD audioLevel;
 
     GameHarness() = default;
 };

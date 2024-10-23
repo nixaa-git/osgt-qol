@@ -4,6 +4,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <mmeapi.h>
 #define EXPORT extern "C" __declspec(dllexport)
 
 // Entry point.
@@ -24,10 +25,12 @@ void setup()
         // Initialize game harness and apply patches.
         game.initialize();
         game.setWindowVisible(false);
+        game.toggleGameAudio();
         optionsMgr.initialize();
         patchMgr.applyPatchesFromFile("patches.txt");
         game.setWindowTitle("Growtopia [OSGT-QOL]");
         game.setWindowVisible(true);
+        game.toggleGameAudio();
         std::fprintf(stderr, "Done applying patches.\n");
     }
     catch (const std::exception& e)

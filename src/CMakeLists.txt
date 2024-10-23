@@ -30,5 +30,6 @@ target_compile_options(dinput8 PRIVATE ${OPTIONS})
 
 set (LIBRARIES 
     minhook
+    winmm.lib
 )
 target_link_libraries(dinput8 PRIVATE ${LIBRARIES})

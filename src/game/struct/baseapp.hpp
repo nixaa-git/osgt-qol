@@ -7,7 +7,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-// Expected size: 2912 bytes
+// Expected size: 2920 bytes
 class BaseApp
 {
   public:
@@ -48,5 +48,5 @@ class BaseApp
     std::vector<uint8_t> m_touchTracker;
     std::string m_version;
     bool m_bDisableSubPixelBlits;
-    uint8_t padding4[63];
+    uint8_t padding4[71];
 };
