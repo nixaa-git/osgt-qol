@@ -1,5 +1,5 @@
 #pragma once
-#include <format>
+#include "game/struct/variant.hpp"
 #include <stdexcept>
 #include <string>
 
@@ -17,11 +17,11 @@
     using name##_t = ret(conv*)(__VA_ARGS__);                                                      \
     namespace real                                                                                 \
     {                                                                                              \
-    inline name##_t name = nullptr;                                                                \
+    name##_t name = nullptr;                                                                       \
     }                                                                                              \
     namespace pattern                                                                              \
     {                                                                                              \
-    inline std::string name = patt;                                                                \
+    std::string name = patt;                                                                       \
     }
 
 namespace game
@@ -93,6 +93,8 @@ class GameHarness
 };
 
 // Responsible for providing a stable API for patches to add in-game options with
+typedef void (*VariantCallback)(Variant*);
+typedef void (*VariantListCallback)(VariantList*);
 class OptionsManager
 {
   public:
@@ -106,6 +108,7 @@ class OptionsManager
         OptionsManager::GameOptionType type;
         std::string varName;
         std::string displayName;
+        void* signal;
     };
     // Get OptionsManager instance
     static OptionsManager& get();
@@ -119,17 +122,27 @@ class OptionsManager
     // Adds a slider option to end of GameOptions list.
     // varName is points to a variable in save.dat.
     // displayName is the string visible in middle of a slider option.
-    void addSliderOption(std::string varName, std::string displayName)
+    void addSliderOption(std::string varName, std::string displayName, VariantCallback pCallback)
     {
-        options.push_back(GameOption(OPTION_SLIDER, varName, displayName));
+        GameOption option;
+        option.type = OPTION_SLIDER;
+        option.varName = varName;
+        option.displayName = displayName;
+        option.signal = (void*)pCallback;
+        options.push_back(option);
     }
 
     // Adds a checkbox option to end of GameOptions list.
     // varName is points to a variable in save.dat.
     // displayName is the string visibile directly next to the checkbox.
-    void addCheckboxOption(std::string varName, std::string displayName)
+    void addCheckboxOption(std::string varName, std::string displayName, VariantListCallback pCallback)
     {
-        options.push_back(GameOption(OPTION_CHECKBOX, varName, displayName));
+        GameOption option;
+        option.type = OPTION_CHECKBOX;
+        option.varName = varName;
+        option.displayName = displayName;
+        option.signal = (void*)pCallback;
+        options.push_back(option);
     }
 
     // All of the custom options we have made are stored here.
@@ -140,7 +153,7 @@ class OptionsManager
     static void renderSlider(OptionsManager::GameOption& optionDef, void* pEntPtr, float vPosX,
                              float& vPosY);
     static void renderCheckbox(OptionsManager::GameOption& optionDef, void* pEntPtr, float vPosX,
-                             float& vPosY);
+                               float& vPosY);
 
     // Fastcalls used in hooks
     static void __fastcall OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, void* unk4);
@@ -165,9 +178,9 @@ template <typename T> T game::GameHarness::findMemoryPattern(const std::string& 
         bool match = true;
         for (size_t i = 0; i < bytes.size(); i++)
         {
-            if (!bytes[i].has_value())
+            if (bytes[i] == UINT16_MAX)
                 continue;
-            if (bytes[i].value() != begin[i])
+            if (bytes[i] != begin[i])
             {
                 match = false;
                 break;
@@ -177,7 +190,7 @@ template <typename T> T game::GameHarness::findMemoryPattern(const std::string& 
             return reinterpret_cast<T>(begin);
         begin++;
     }
-    throw std::runtime_error(std::format("Failed to find pattern '{}'.", pattern));
+    throw std::runtime_error("Failed to find pattern '" + pattern + "'.");
 }
 
 template <typename F> void game::GameHarness::hookFunction(F target, F detour, F* original)
@@ -185,15 +198,19 @@ template <typename F> void game::GameHarness::hookFunction(F target, F detour, F
     MH_STATUS status = MH_CreateHook(target, detour, reinterpret_cast<void**>(original));
     if (status != MH_OK)
     {
-        auto msg = std::format("Failed to create hook at 0x{:p} ({})", (void*)target,
-                               MH_StatusToString(status));
-        throw std::runtime_error(msg);
+        // auto msg = std::format("Failed to create hook at 0x{:p} ({})", (void*)target,
+        //                        MH_StatusToString(status));
+        // throw std::runtime_error(msg);
+        // TODO: Fix the messages to be like they were above
+        throw std::runtime_error("Failed to create hook.");
     }
     if ((status = MH_EnableHook(target)) != MH_OK)
     {
-        auto msg = std::format("Failed to enable hook at 0x{:p} ({})", (void*)target,
-                               MH_StatusToString(status));
-        throw std::runtime_error(msg);
+        // auto msg = std::format("Failed to enable hook at 0x{:p} ({})", (void*)target,
+        //                        MH_StatusToString(status));
+        // throw std::runtime_error(msg);
+        // TODO: Fix the messages to be like they were above
+        throw std::runtime_error("Failed to enable hook.");
     }
 }
 
@@ -202,7 +219,7 @@ void game::GameHarness::hookFunctionPatternDirect(const std::string& pattern, F 
 {
     auto addr = findMemoryPattern<F>(pattern);
     if (addr == nullptr)
-        throw std::runtime_error(std::format("Failed to find pattern '{}'.", pattern));
+        throw std::runtime_error("Failed to find pattern '" + pattern + "'.");
     hookFunction<F>(addr, detour, original);
 }
 
@@ -211,9 +228,9 @@ void game::GameHarness::hookFunctionPatternCall(const std::string& pattern, F de
 {
     auto addr = findMemoryPattern<F>(pattern);
     if (addr == nullptr)
-        throw std::runtime_error(std::format("Failed to find pattern '{}'.", pattern));
+        throw std::runtime_error("Failed to find pattern '" + pattern + "'.");
     auto call = utils::resolveRelativeCall<F>(addr);
     if (call == nullptr)
-        throw std::runtime_error(std::format("Failed to resolve call at 0x{:p}.", (void*)addr));
+         throw std::runtime_error("Failed to resolve call at " + std::to_string((uintptr_t*)addr));
     hookFunction<F>(call, detour, original);
 }

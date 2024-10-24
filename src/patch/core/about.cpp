@@ -2,7 +2,6 @@
 #include "game/signatures.hpp"
 #include "game/struct/entity.hpp"
 #include "patch/patch.hpp"
-#include <format>
 #include <string>
 
 REGISTER_GAME_FUNCTION(AboutMenuAddScrollContent,
@@ -22,8 +21,6 @@ class AboutMenuAttribution : public patch::BasePatch
         auto& game = game::GameHarness::get();
         // Setup borrowed game functions.s
         real::SetTextEntity = game.findMemoryPattern<SetTextEntity_t>(pattern::SetTextEntity);
-        real::ResizeScrollBounds =
-            game.findMemoryPattern<ResizeScrollBounds_t>(pattern::ResizeScrollBounds);
         // Hook AboutMenuAddScrollContent.
         game.hookFunctionPatternDirect<AboutMenuAddScrollContent_t>(
             pattern::AboutMenuAddScrollContent, AboutMenuAddScrollContent,
@@ -76,10 +73,8 @@ class AboutMenuAttribution : public patch::BasePatch
     static std::string GetAttributionText()
     {
         auto patches = patch::PatchManager::get().getAppliedUserPatchList();
-        std::string text =
-            std::format("\nOSGT-QOL V1.0-ALPHA\n`6Game modification created by `wCernodile`` and "
-                        "`whouz``. There are currently `w{}`` patches applied: ",
-                        patches.size());
+        std::string text = "\nOSGT-QOL V1.0-ALPHA\n`6Game modification created by `wCernodile`` and "
+                        "`whouz``. There are currently `w" + std::to_string(patches.size()) + "`` patches applied: ";
         // Create comma-separated list of patches.
         for (size_t i = 0; i < patches.size(); i++)
         {

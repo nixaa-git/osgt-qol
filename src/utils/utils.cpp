@@ -15,7 +15,7 @@ RawPattern parsePattern(const std::string& pattern)
     while (ss >> byte)
     {
         if (byte == "?" || byte == "??")
-            out.emplace_back(std::nullopt);
+            out.emplace_back(UINT16_MAX);
         else
         {
             try
@@ -52,8 +52,8 @@ void writeMemoryPattern(void* address, const std::string& pattern)
     uint8_t* ptr = reinterpret_cast<uint8_t*>(address);
     for (size_t i = 0; i < bytes.size(); i++)
     {
-        if (bytes[i].has_value())
-            *ptr = bytes[i].value();
+        if (bytes[i] != UINT16_MAX)
+            *ptr = bytes[i];
         ptr++;
     }
     if (!VirtualProtect(address, bytes.size(), old, &old))

@@ -88,16 +88,22 @@ template <class T, PatchType P> class RegisterPatch
 // Utility macro for easy registration of core game patches. Creates an instance of
 // RegisterPatch<type, PatchType::Core> within the patch namespace.
 #define REGISTER_CORE_GAME_PATCH(type, name)                                                       \
-    namespace patch::internal                                                                      \
+    namespace patch                                                                                \
+    {                                                                                              \
+    namespace internal                                                                             \
     {                                                                                              \
     RegisterPatch<type, PatchType::Core> patch##name(#name);                                       \
+    }                                                                                              \
     }
 
 // Ditto, but for user patches.
 #define REGISTER_USER_GAME_PATCH(type, name)                                                       \
-    namespace patch::internal                                                                      \
+    namespace patch                                                                                \
+    {                                                                                              \
+    namespace internal                                                                             \
     {                                                                                              \
     RegisterPatch<type, PatchType::User> patch##name(#name);                                       \
+    }                                                                                              \
     }
 
 } // namespace internal

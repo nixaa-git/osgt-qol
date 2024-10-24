@@ -36,14 +36,22 @@ class FramerateUnlockPatch : public patch::BasePatch
             {
                 auto& optionsMgr = game::OptionsManager::get();
                 optionsMgr.addCheckboxOption(
-                    "osgt_qol_fps_min90", "Set FPS Limit minimum value to 90 (may get V-Synced)\n"
-                                          "`5(After exiting press CTRL+F few times to apply)``");
+                    "osgt_qol_fps_min90", "Set FPS Limit minimum value to 90 (may get V-Synced)\n",
+                    &OnFPSMinimumCallback);
             }
         }
 
         // Fix crazy pet movement.
         game.hookFunctionPatternDirect<PetRenderDataUpdate_t>(
             pattern::PetRenderDataUpdate, PetRenderDataUpdate, &real::PetRenderDataUpdate);
+    }
+
+    static void OnFPSMinimumCallback(VariantList* pVariant)
+    {
+        Entity* pCheckbox = pVariant->Get(1).GetEntity();
+        bool bChecked = pCheckbox->GetVar("checked")->GetUINT32() != 0;
+        real::GetApp()->GetVar("osgt_qol_fps_min90")->Set(uint32_t(bChecked));
+        SetFPSLimit(nullptr, 60.0f);
     }
 
     static void __fastcall SetFPSLimit(void* app, float fps)

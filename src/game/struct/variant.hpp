@@ -1,10 +1,12 @@
 #pragma once
 #include "vec.hpp"
-#include <format>
 #include <string>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+#define BOOST_SIGNALS_NO_DEPRECATION_WARNING
+#include <boost/signal.hpp>
 
 class Entity;
 class EntityComponent;
@@ -85,15 +87,30 @@ class Variant
     Variant() { SetDefaults(); }
     ~Variant(){
         // SAFE_DELETE(m_pSig_onChanged);
+        if (m_pSig_onChanged) {
+            delete m_pSig_onChanged;
+            m_pSig_onChanged = 0;
+        }
     };
 
     void Reset()
     {
         m_type = TYPE_UNUSED;
         // SAFE_DELETE(m_pSig_onChanged);
+        if (m_pSig_onChanged) {
+            delete m_pSig_onChanged;
+            m_pSig_onChanged = 0;
+        }
     }
 
-    // boost::signal<void (Variant*)> * GetSigOnChanged();
+    boost::signal<void (Variant*)> * GetSigOnChanged()
+    {
+        if (!m_pSig_onChanged)
+        {
+            m_pSig_onChanged = new boost::signal<void (Variant*)>;
+        }
+        return m_pSig_onChanged;
+    }
 
     void Set(const Variant& v);
     void SetVariant(Variant* pVar);
@@ -102,6 +119,8 @@ class Variant
     {
         m_type = TYPE_FLOAT;
         *((float*)m_var) = var;
+        if (m_pSig_onChanged)
+            (*m_pSig_onChanged)(this);
     }
 
     float& GetFloat()
@@ -240,13 +259,13 @@ class Variant
         case TYPE_VECTOR2:
         {
             CL_Vec2f* v = reinterpret_cast<CL_Vec2f*>(m_var);
-            return std::format("{0:.2f}, {1:.2f}", v->x, v->y);
+            return v->Print();
             break;
         }
         case TYPE_VECTOR3:
         {
             CL_Vec3f* v = reinterpret_cast<CL_Vec3f*>(m_var);
-            return std::format("{0:.3f}, {1:.3f}, {2:.3f}", v->x, v->y, v->z);
+            return v->Print();
             break;
         }
         case TYPE_UINT32:
@@ -264,8 +283,7 @@ class Variant
         case TYPE_RECT:
         {
             CL_Rectf* v = reinterpret_cast<CL_Rectf*>(m_var);
-            return std::format("{0:.3f}, {1:.3f}, {2:.3f}, {3:.3f}", v->left, v->top, v->right,
-                               v->bottom);
+            return v->Print();
             break;
         }
         case TYPE_UNUSED:
@@ -291,7 +309,7 @@ class Variant
         int32_t m_as_int32s[4];
     };
     std::string m_string;
-    void* m_pSig_onChanged = 0;
+    boost::signal<void (Variant*)> *m_pSig_onChanged;
 };
 
 class VariantList

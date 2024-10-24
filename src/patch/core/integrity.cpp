@@ -41,10 +41,8 @@ class SecureItemManager : public patch::BasePatch
         // end-user's computer.
         if (filePath.find("..") != std::string::npos)
         {
-            auto msg = std::format(
-                "The server you were connecting to contained a malicious item definitions file. "
-                "Shutting down game to prevent further damages. Offending filename: {}",
-                filePath);
+            std::string msg = "The server you were connecting to contained a malicious item definitions file. "
+                "Shutting down game to prevent further damages. Offending filename: " + filePath;
             // Hide the game window as sometimes the error may get stuck behind it.
             auto& game = game::GameHarness::get();
             game.setWindowVisible(false);

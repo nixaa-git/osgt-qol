@@ -71,14 +71,8 @@ class ServerSwitcher : public patch::BasePatch
     {
         auto& game = game::GameHarness::get();
         // Resolve UI functions - we will need these to properly construct our UI in OnlineMenu
-        real::GetFontAndScaleToFitThisLinesPerScreenY =
-            game.findMemoryPattern<GetFontAndScaleToFitThisLinesPerScreenY_t>(
-                pattern::GetFontAndScaleToFitThisLinesPerScreenY);
         real::CreateInputTextEntity =
             game.findMemoryPattern<CreateInputTextEntity_t>(pattern::CreateInputTextEntity);
-        real::CreateTextLabelEntity =
-            game.findMemoryPattern<CreateTextLabelEntity_t>(pattern::CreateTextLabelEntity);
-        real::SetupTextEntity = game.findMemoryPattern<SetupTextEntity_t>(pattern::SetupTextEntity);
         real::SlideScreen = game.findMemoryPattern<SlideScreen_t>(pattern::SlideScreen);
 
         // We want to also inform the user which server they are using.
@@ -182,8 +176,7 @@ class ServerSwitcher : public patch::BasePatch
         if (URI == "growtopia/server_data.php")
         {
             pVList->Get(0).Set(serverOverride);
-            real::LogToConsole(
-                std::format("Using `w{}`` as the server data provider...", serverOverride).c_str());
+            real::LogToConsole(std::string("Using `w" + serverOverride + "`` as the server data provider...").c_str());
         }
         real::HTTPComponentInitAndStart(this_, pVList);
     }
@@ -204,10 +197,6 @@ class CacheLocationFixer : public patch::BasePatch
     void apply() const override
     {
         auto& game = game::GameHarness::get();
-
-        // We need to modify cache string in App
-        auto addr = game.findMemoryPattern<uint8_t*>(pattern::GetApp);
-        real::GetApp = utils::resolveRelativeCall<GetApp_t>(addr + 4);
 
         // Get our current directory
         TCHAR lpBuffer[MAX_PATH];

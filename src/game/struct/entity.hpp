@@ -56,6 +56,7 @@ class Entity
     {
         return m_sharedDB.GetVarWithDefault(varName, var);
     }
+    FunctionObject * GetFunction(const std::string &funcName) {return m_sharedDB.GetFunction(funcName);}
 
     Entity* GetParent() { return m_pParent; }
     void SetParent(Entity* pEntity) { m_pParent = pEntity; }

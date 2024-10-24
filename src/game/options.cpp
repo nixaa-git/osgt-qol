@@ -11,13 +11,76 @@ REGISTER_GAME_FUNCTION(OptionsMenuAddContent,
                        "0F 29 A0 58 FF FF FF 44 0F 29 A8 48 FF FF FF 48 8B 05 0F",
                        __fastcall, void, void* pScrollChild, void*, void*, void*);
 
-// OptionsMenuOnSelect
-// Params: VariantList with GUI event details
-REGISTER_GAME_FUNCTION(OptionsMenuOnSelect,
-                       "48 8B C4 55 41 54 41 55 41 56 41 57 48 8D A8 58 FC FF FF 48 81 EC 80 04 00 "
-                       "00 48 C7 45 48 FE FF FF FF 48 89 58 10 48 89 70 18 48 89 78 20 48 8B 05 8B "
-                       "FF 2C 00 48 33 C4 48 89 85 70 03 00 00 45",
-                       __fastcall, void, void* pVList);
+REGISTER_GAME_FUNCTION(GetApp, "44 0F 28 F8 E8 ? ? ? ? 48 8B C8 48 8D", __fastcall, App*);
+
+// CreateSlider
+// NOTE: Need to investigate the final strings. They're not there originally in Proton SDK.
+REGISTER_GAME_FUNCTION(
+    CreateSlider,
+    "48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 78 FE FF FF 48 81 EC 48 02 00 00 48 C7 "
+    "45 30 FE FF FF FF 0F 29 70 A8 0F 29 78 98 44 0F 29 40 88 44 0F 29 88 78 FF FF FF 44 0F 29 A0",
+    __fastcall, EntityComponent*, Entity* pBG, float x, float y, float sizeX,
+    std::string buttonFileName, std::string left, std::string middle, std::string right,
+    std::string, std::string, std::string, std::string);
+
+// CreateCheckbox
+// Again with trailing strings that aren't there in Proton.
+REGISTER_GAME_FUNCTION(
+    CreateCheckBox,
+    "48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 78 FE FF FF 48 81 EC 48 02 00 00 48 C7 "
+    "45 30 FE FF FF FF 0F 29 70 A8 0F 29 78 98 44 0F 29 40 88 44 0F 29 88 78 FF FF FF 48 8B",
+    __fastcall, Entity*, Entity* pBG, std::string name, std::string text, float x, float y,
+    bool bChecked, uint32_t fontID, float fontScale, bool unclickable, std::string unk10,
+    std::string unk11, std::string unk12)
+
+// GetEntityRoot
+// NOTE: Can be deprecated if we wrap our own to call GetApp() and pass on BaseApp's m_entityRoot.
+REGISTER_GAME_FUNCTION(GetEntityRoot,
+                       "E8 ? ? ? ? E8 ? ? ? ? 48 8B C8 33 D2 E8 ? ? ? ? 48 8B 4D F8 48 33 CC E8 ? "
+                       "? ? ? 4C 8D 9C 24 80 00 00 00 49 8B 5B 28",
+                       __fastcall, Entity*);
+
+// GetFontAndScaleToFitThisLinesPerScreenY
+REGISTER_GAME_FUNCTION(GetFontAndScaleToFitThisLinesPerScreenY,
+                       "48 89 5C 24 08 57 48 83 EC 50 0F 29 74 24 40 48 8B DA", __fastcall, void,
+                       uint32_t& fontID, float& fontScale, float lines);
+
+// CreateTextLabelEntity
+REGISTER_GAME_FUNCTION(CreateTextLabelEntity, "48 8B C4 55 57 41 56 48 8D 68 A9 48 81 EC D0 00",
+                       __fastcall, Entity*, Entity* pParentEnt, std::string name, float vPosX,
+                       float vPosY, std::string);
+
+// SetupTextEntity
+REGISTER_GAME_FUNCTION(SetupTextEntity,
+                       "48 8B C4 55 57 41 54 41 56 41 57 48 8D 68 A1 48 81 EC E0 00 00 00 48 C7 44",
+                       __fastcall, void, Entity*, uint32_t eFontID, float fontScale);
+
+// ResizeScrollBounds
+// Params: VariantList with Entity containing "Scroll" and "scroll_child"
+REGISTER_GAME_FUNCTION(ResizeScrollBounds,
+                       "48 8B C4 55 48 8D 68 A1 48 81 EC D0 00 00 00 48 C7 45 A7 FE FF FF FF 48 89 "
+                       "58 10 48 89 70 18 48 89 78",
+                       __fastcall, void, VariantList* pVList);
+
+// iPadMapX
+REGISTER_GAME_FUNCTION(iPadMapX, "66 0F 6E 0D 9C 76 4B 00 0F 5B C9 F3 0F 59 C8 F3 0F", __fastcall,
+                       float, float);
+
+// iPadMapY
+REGISTER_GAME_FUNCTION(
+    iPadMapY,
+    "66 0F 6E 0D 68 76 4B 00 0F 5B C9 F3 0F 59 C8 F3 0F 2C C1 66 0F 6E C0 0F 5B C0 F3 0F 5E",
+    __fastcall, float, float);
+
+// iPhoneMapX
+REGISTER_GAME_FUNCTION(iPhoneMapX, "66 0F 6E 0D 7C 75 4B 00 0F 5B C9 F3 0F 59 C8 F3 0F 2C C1",
+                       __fastcall, float, float);
+
+// iPhoneMapY
+REGISTER_GAME_FUNCTION(iPhoneMapY,
+                       "66 0F 6E 0D 08 75 4B 00 0F 5B C9 F3 0F 59 C8 F3 0F 2C C1 66 0F 6E C0 0F 5B "
+                       "C0 F3 0F 5E 05 AE 28",
+                       __fastcall, float, float);
 
 namespace game
 {
@@ -35,7 +98,6 @@ void game::OptionsManager::initialize()
     // Resolve our needed functions
     real::CreateSlider = game.findMemoryPattern<CreateSlider_t>(pattern::CreateSlider);
     real::CreateCheckBox = game.findMemoryPattern<CreateCheckBox_t>(pattern::CreateCheckBox);
-    real::BoostSigFire = game.findMemoryPattern<BoostSigFire_t>(pattern::BoostSigFire);
     real::GetApp =
         utils::resolveRelativeCall<GetApp_t>(game.findMemoryPattern<uint8_t*>(pattern::GetApp) + 4);
     real::GetFontAndScaleToFitThisLinesPerScreenY =
@@ -48,12 +110,15 @@ void game::OptionsManager::initialize()
     real::iPadMapY = game.findMemoryPattern<iPadMapY_t>(pattern::iPadMapY);
     real::iPhoneMapX = game.findMemoryPattern<iPhoneMapX_t>(pattern::iPhoneMapX);
     real::iPhoneMapY = game.findMemoryPattern<iPhoneMapY_t>(pattern::iPhoneMapY);
+    real::ResizeScrollBounds =
+        game.findMemoryPattern<ResizeScrollBounds_t>(pattern::ResizeScrollBounds);
+
+    auto addr = game.findMemoryPattern<uint8_t*>(pattern::GetEntityRoot);
+    real::GetEntityRoot = utils::resolveRelativeCall<GetEntityRoot_t>(addr + 5);
 
     // Hook
     game.hookFunctionPatternDirect<OptionsMenuAddContent_t>(
         pattern::OptionsMenuAddContent, OptionsMenuAddContent, &real::OptionsMenuAddContent);
-    game.hookFunctionPatternDirect<OptionsMenuOnSelect_t>(
-        pattern::OptionsMenuOnSelect, OptionsMenuOnSelect, &real::OptionsMenuOnSelect);
 }
 
 void OptionsManager::renderSlider(OptionsManager::GameOption& optionDef, void* pEntityPtr,
@@ -71,12 +136,14 @@ void OptionsManager::renderSlider(OptionsManager::GameOption& optionDef, void* p
                                                       optionDef.displayName, "Max", "", "", "", "");
 
     // Lets assign parent SliderEnt a name we can identify later.
-    // NOTE: This can be removed when there's functional boost signals1 support.
     pSliderComp->GetParent()->GetVarWithDefault("osgt_setting", Variant(optionDef.varName));
+
     // Move the slider button according to variable in SharedDB.
     pSliderComp->GetVar("progress")->Set(real::GetApp()->GetVar(optionDef.varName)->GetFloat());
-    // Fire m_pSig_onChanged.
-    real::BoostSigFire(pSliderComp->GetVar("progress")->m_pSig_onChanged, 0);
+    if (optionDef.signal != nullptr)
+        pSliderComp->GetVar("progress")
+            ->GetSigOnChanged()
+            ->connect(reinterpret_cast<VariantCallback>(optionDef.signal));
 
     // Adjust margin for next option.
     vPosY += pSliderComp->GetParent()->GetVar("size2d")->GetVector2().y;
@@ -103,6 +170,10 @@ void OptionsManager::renderCheckbox(OptionsManager::GameOption& optionDef, void*
     Entity* pCheckbox =
         real::CreateCheckBox(pEnt, optionDef.varName, optionDef.displayName, vPosX, vPosY,
                              pVariant->GetUINT32() == 1, fontID, fontScale, false, "", "", "");
+
+    if (optionDef.signal != nullptr)
+        pCheckbox->GetFunction("OnButtonSelected")
+            ->sig_function.connect(reinterpret_cast<VariantListCallback>(optionDef.signal));
 
     // Adjust margin for next option.
     vPosY += pCheckbox->GetVar("size2d")->GetVector2().y;
@@ -181,54 +252,4 @@ void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, v
     return;
 }
 
-void OptionsManager::OptionsMenuOnSelect(void* pVListPtr)
-{
-    VariantList* pVList = reinterpret_cast<VariantList*>(pVListPtr);
-    Entity* pEnt = pVList->Get(1).GetEntity();
-    // Are we exiting the Options menu? If so, lets save our custom settings.
-    if (pEnt->GetName() == "Back")
-    {
-        // The Entity structure is something like to this:
-        // OptionsMenu
-        //   BGRectBack
-        //   scroll
-        //     scroll_child
-        //       [...]
-        //   Back
-        Entity* pScrollChild =
-            pEnt->GetParent()->GetEntityByName("scroll")->GetEntityByName("scroll_child");
-        // Lets save our checkboxes
-        auto& optionsMgr = game::OptionsManager::get();
-        for (const auto& opt : optionsMgr.options)
-        {
-            if (opt.type != OptionsManager::OPTION_CHECKBOX)
-                continue;
-            // Checkboxes can be found easily with their name.
-            // Boost should ideally direct it to a dedicated "handler" function though.
-            // In the future, a patch should pass on a function of its own for checkboxes on
-            // what to do after a state change, if needed.
-            Entity* pCheckbox = pScrollChild->GetEntityByName(opt.varName);
-            Variant* pVariant = real::GetApp()->GetVar(opt.varName);
-            pVariant->Set(pCheckbox->GetVar("checked")->GetUINT32());
-        }
-        // Lets save our sliders
-        // NOTE: Rework when we can use boost signals1.
-        std::vector<Entity*> pEnts;
-        // We don't need to recurse too deep. SliderEnts are already direct children of
-        // scroll_child
-        pScrollChild->GetEntitiesByName(&pEnts, "SliderEnt", 1);
-        // Iterate over them and seek their "osgt_setting" value
-        for (const auto& ent : pEnts)
-        {
-            Variant* pVariant = ent->GetShared()->GetVarIfExists("osgt_setting");
-            if (pVariant == nullptr)
-                continue;
-            std::string key = pVariant->GetString();
-            pVariant = real::GetApp()->GetVar(key);
-            pVariant->Set(ent->GetComponentByName("Slider")->GetVar("progress")->GetFloat());
-        }
-    }
-    real::OptionsMenuOnSelect(pVList);
-    return;
-}
 }; // namespace game

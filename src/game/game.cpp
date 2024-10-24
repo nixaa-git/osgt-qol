@@ -29,8 +29,7 @@ void GameHarness::initialize()
     MH_STATUS status = MH_Initialize();
     if (status != MH_OK)
     {
-        auto msg = std::format("Failed to initialize MinHook: {}", MH_StatusToString(status));
-        throw std::runtime_error(msg);
+        throw std::runtime_error("Failed to initialize MinHook: " + std::string(MH_StatusToString(status)));
     }
 
     // Block function until game processes this message. This lets us know the game is in an

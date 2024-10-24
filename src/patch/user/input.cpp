@@ -144,6 +144,11 @@ class HotkeyPatch : public patch::BasePatch
         real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_ToolSelect1", 49, 600001, 0, 0);
         real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_ToolSelect2", 50, 600002, 0, 0);
         real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_ToolSelect3", 51, 600003, 0, 0);
+        // Also the numpad keys with 0 resetting to Fist/Wrench.
+        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect1", 96, 600000, 0, 0);
+        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect1", 97, 600001, 0, 0);
+        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect2", 98, 600002, 0, 0);
+        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect3", 99, 600003, 0, 0);
     }
 };
 REGISTER_USER_GAME_PATCH(HotkeyPatch, hotkey_patch);

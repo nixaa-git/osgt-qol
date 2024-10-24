@@ -69,9 +69,6 @@ class StartMusicSliderBackport : public patch::BasePatch
         // We store the start volume value in same place the future version does, inside App
         // VariantDB's "start_vol" key.
 
-        // TODO: Future improvement would involve making the slider work dynamically. Game
-        // originally does this with boost callback.
-
         auto& game = game::GameHarness::get();
         // Resolve functions.
         real::AudioManagerFMODSetMusicVol = game.findMemoryPattern<AudioManagerFMODSetMusicVol_t>(
@@ -86,7 +83,7 @@ class StartMusicSliderBackport : public patch::BasePatch
             pVariant->Set(1.0f);
 
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addSliderOption("start_vol", "Start Music");
+        optionsMgr.addSliderOption("start_vol", "Start Music", &StartVolumeSliderCallback);
 
         // The first sound is almost certainly going to be theme.ogg, so lets lower the volume.
         real::AudioManagerFMODSetMusicVol(real::GetAudioManager(), pVariant->GetFloat());
@@ -98,6 +95,12 @@ class StartMusicSliderBackport : public patch::BasePatch
                           &real::AudioManagerFMODSetMusicVol);
     }
 
+    static void StartVolumeSliderCallback(Variant* pVariant)
+    {
+        real::GetApp()->GetVar("start_vol")->Set(pVariant->GetFloat());
+        real::AudioManagerFMODSetMusicVol(real::GetAudioManager(), pVariant->GetFloat());
+    }
+
     static void __fastcall AudioManagerFMODSetMusicVol(void* this_, float volume)
     {
         // If you exited to OnlineScreen, it was still as loud as ever. You could also change
@@ -105,7 +108,7 @@ class StartMusicSliderBackport : public patch::BasePatch
         // nit: Create a struct for AudioManager/AudioManagerFMOD
         std::string* lastTrackName =
             reinterpret_cast<std::string*>(reinterpret_cast<uint8_t*>(this_) + 8);
-        if (lastTrackName->ends_with("/theme.ogg"))
+        if (lastTrackName->find("/theme.ogg") != std::string::npos)
         {
             real::AudioManagerFMODSetMusicVol(this_,
                                               real::GetApp()->GetVar("start_vol")->GetFloat());
@@ -120,7 +123,7 @@ class StartMusicSliderBackport : public patch::BasePatch
         if (bIsMusic)
         {
             // The blaringly loud start music comes from theme.ogg on PC (or mp3 on iOS).
-            if (fName.ends_with("/theme.ogg"))
+            if (fName.find("/theme.ogg") != std::string::npos)
                 real::AudioManagerFMODSetMusicVol(this_,
                                                   real::GetApp()->GetVar("start_vol")->GetFloat());
             else

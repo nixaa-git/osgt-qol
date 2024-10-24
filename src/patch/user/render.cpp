@@ -51,8 +51,6 @@ class GoodNightTitleScreen : public patch::BasePatch
             game.findMemoryPattern<BackgroundNightInit_t>(pattern::BackgroundNightInit);
         real::BackgroundDefaultDtor =
             game.findMemoryPattern<BackgroundDefaultDtor_t>(pattern::BackgroundDefaultDtor);
-        auto addr = game.findMemoryPattern<uint8_t*>(pattern::GetEntityRoot);
-        real::GetEntityRoot = utils::resolveRelativeCall<GetEntityRoot_t>(addr + 5);
 
         // Hook
         game.hookFunctionPatternDirect<MainMenuCreate_t>(pattern::MainMenuCreate, MainMenuCreate,
@@ -99,9 +97,6 @@ class BubbleOpacityBackport : public patch::BasePatch
     void apply() const override
     {
         auto& game = game::GameHarness::get();
-        // Retrieve needed functions.
-        real::GetApp = utils::resolveRelativeCall<GetApp_t>(
-            game.findMemoryPattern<uint8_t*>(pattern::GetApp) + 4);
 
         // Bubble opacity is a vanilla feature, albeit from future version, it should go in save.dat
         Variant* pVariant = real::GetApp()->GetVar("speech_bubble_opacity");
@@ -112,11 +107,17 @@ class BubbleOpacityBackport : public patch::BasePatch
         // it'd be too messy to ram it between them. OptionsManager will move it to dedicated
         // "OSGT-QOL Options" area.
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addSliderOption("speech_bubble_opacity", "Bubble Opacity");
+        optionsMgr.addSliderOption("speech_bubble_opacity", "Bubble Opacity",
+                                   &BubbleOpacitySliderCallback);
 
         // Hook
         game.hookFunctionPatternDirect<DrawFilledBitmapRect_t>(
             pattern::DrawFilledBitmapRect, DrawFilledBitmapRect, &real::DrawFilledBitmapRect);
+    }
+
+    static void BubbleOpacitySliderCallback(Variant* pVariant)
+    {
+        real::GetApp()->GetVar("speech_bubble_opacity")->Set(pVariant->GetFloat());
     }
 
     static void __fastcall DrawFilledBitmapRect(rtRectf& r, uint32_t middleColor,

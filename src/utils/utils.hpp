@@ -1,5 +1,4 @@
 #pragma once
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -8,7 +7,9 @@
 #include <windows.h>
 
 // Container for a memory pattern where std::nullopt represents a wildcard byte.
-using RawPattern = std::vector<std::optional<uint8_t>>;
+// TODO: This used to be std::optional<uint8_t>. Maybe a nicer solution to be made here now that
+// we're on C++14
+using RawPattern = std::vector<uint16_t>;
 
 namespace utils
 {
