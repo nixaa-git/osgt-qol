@@ -25,3 +25,5 @@ class ItemInfoManager
         return &m_items[ID];
     }
 };
+static_assert(sizeof(ItemInfoManager) == 48, "ItemInfoManager class size mismatch.");
+static_assert(sizeof(ItemInfo) == 888, "ItemInfo struct size mismatch.");

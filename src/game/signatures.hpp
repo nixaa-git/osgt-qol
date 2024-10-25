@@ -28,3 +28,6 @@ DEFINE_GAME_FUNCTION(iPadMapX, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPadMapY, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPhoneMapX, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPhoneMapY, __fastcall, float, float);
+DEFINE_GAME_FUNCTION(DrawFilledRect, __fastcall, void, const Rectf& rect, uint32_t rgba, float unk3,
+                     Vec2f* unk4);
+DEFINE_GAME_FUNCTION(GetScreenRect, __fastcall, void, Rectf&);

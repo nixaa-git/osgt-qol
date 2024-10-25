@@ -44,3 +44,4 @@ class App : public BaseApp
     uint8_t pad6[140]; // Unidentified
     // +4873 - Unidentified bool
 };
+static_assert(sizeof(App) == 4976, "App class size mismatch.");

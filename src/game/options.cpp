@@ -82,6 +82,16 @@ REGISTER_GAME_FUNCTION(iPhoneMapY,
                        "C0 F3 0F 5E 05 AE 28",
                        __fastcall, float, float);
 
+// DrawFilledRect
+REGISTER_GAME_FUNCTION(DrawFilledRect,
+                       "48 83 EC 58 F3 41 0F 10 01 48 8D 44 24 40 F3 41 0F 10 49 04 0F", __fastcall,
+                       void, const Rectf& rect, uint32_t rgba, float unk3, Vec2f* unk4);
+
+// GetScreenRect
+REGISTER_GAME_FUNCTION(GetScreenRect,
+                       "66 0F 6E 05 0C 7C 4B 00 33 C0 66 0F 6E 0D FE 7B 4B 00 0F 5B C0 48",
+                       __fastcall, void, Rectf&);
+
 namespace game
 {
 
@@ -115,6 +125,10 @@ void game::OptionsManager::initialize()
 
     auto addr = game.findMemoryPattern<uint8_t*>(pattern::GetEntityRoot);
     real::GetEntityRoot = utils::resolveRelativeCall<GetEntityRoot_t>(addr + 5);
+
+    // Move elsewhere later
+    real::DrawFilledRect = game.findMemoryPattern<DrawFilledRect_t>(pattern::DrawFilledRect);
+    real::GetScreenRect = game.findMemoryPattern<GetScreenRect_t>(pattern::GetScreenRect);
 
     // Hook
     game.hookFunctionPatternDirect<OptionsMenuAddContent_t>(

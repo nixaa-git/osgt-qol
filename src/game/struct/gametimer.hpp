@@ -18,3 +18,4 @@ class GameTimer
     std::deque<float> m_tickHistory;
     unsigned int m_shadowGameTick;
 };
+static_assert(sizeof(GameTimer) == 96, "GameTimer class size mismatch.");

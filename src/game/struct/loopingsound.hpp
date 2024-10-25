@@ -30,7 +30,7 @@ class LoopingSound
         m_bDisabled = false;
         m_volume = 1.0f;
     }
-    virtual ~LoopingSound();
+    virtual ~LoopingSound(){}; // STUB
 
     void Init(std::string loopingMove, std::string moveStart = "", std::string moveEnd = "",
               std::string loopingIdle = "", bool bAddBasePath = true);
@@ -63,3 +63,4 @@ class LoopingSound
     bool m_bAddBasePath;
     float m_volume;
 };
+static_assert(sizeof(LoopingSound) == 184, "LoopingSound class size mismatch.");

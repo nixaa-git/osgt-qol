@@ -28,3 +28,4 @@ class EntityComponent : public boost::signals::trackable
     Entity* m_parent;
     VariantDB m_sharedDB;
 };
+static_assert(sizeof(EntityComponent) == 216, "EntityComponent class size mismatch.");

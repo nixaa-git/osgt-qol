@@ -20,3 +20,4 @@ class GameLogicComponent : public EntityComponent
 
     uint8_t pad5[300];
 };
+static_assert(sizeof(GameLogicComponent) == 880, "GameLogicComponent class size mismatch.");

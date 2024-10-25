@@ -12,19 +12,36 @@ class BaseApp
 {
   public:
     // Virtual functions
-    void* dtor;
-    void* Kill;
-    void* OnPreInitVideo;
-    void* Draw;
-    void* Update;
-    void* OnEnterBackground;
-    void* OnEnterForeground;
-    void* OnScreenSizeChange;
-    void* OnFullscreenToggleRequest;
-    void* OnMessage;
-    void* OnMemoryWarning;
+    virtual ~BaseApp();
+    virtual void Kill();
+    virtual void OnPreInitVideo();
+    virtual void Draw();
+    virtual void Update();
+    virtual void OnEnterBackground();
+    virtual void OnEnterForeground();
+    virtual void OnScreenSizeChange();
+    virtual void OnFullscreenToggleRequest();
+    virtual void OnMessage();
+    virtual void OnMemoryWarning();
 
-    uint8_t m_sigs[40 * 16]; // m_sig_xyz boost signals
+    boost::signal<void(VariantList*)> m_sig_input;
+    boost::signal<void(VariantList*)> m_sig_input_move;
+    boost::signal<void(VariantList*)> m_sig_os;
+    boost::signal<void(VariantList*)> m_sig_update;
+    boost::signal<void(VariantList*)> m_sig_render;
+    boost::signal<void(VariantList*)> m_sig_pre_enterbackground;
+    boost::signal<void(VariantList*)> m_sig_enterbackground;
+    boost::signal<void(VariantList*)> m_sig_enterforeground;
+    boost::signal<void(VariantList*)> m_sig_accel;
+    boost::signal<void(VariantList*)> m_sig_trackball;
+    boost::signal<void(VariantList*)> m_sig_arcade_input;
+    boost::signal<void(VariantList*)> m_sig_raw_keyboard;
+    boost::signal<void(VariantList*)> m_sig_hardware;
+    boost::signal<void(void)> m_sig_onScreenSizeChanged;
+    boost::signal<void(void)> m_sig_unloadSurfaces;
+    boost::signal<void(void)> m_sig_loadSurfaces;
+    boost::signal<void(VariantList*)> m_sig_joypad_events;
+    boost::signal<void(VariantList*)> m_sig_native_input_state_changed;
 
     bool m_bConsoleVisible;
     bool m_bFPSVisible;
@@ -32,7 +49,7 @@ class BaseApp
     GameTimer m_gameTimer;
     uint8_t m_console[176];
     uint8_t m_fontArray[384 * 4]; // 3 RTFont + destructor
-    uint8_t m_OSMessages[40]; // A deque with <OSMessage>
+    uint8_t m_OSMessages[40];     // A deque with <OSMessage>
     bool m_bManualRotation;
     uint8_t padding2[7];
     uint8_t m_resourceManager[24];
@@ -50,3 +67,4 @@ class BaseApp
     bool m_bDisableSubPixelBlits;
     uint8_t padding4[71];
 };
+static_assert(sizeof(BaseApp) == 2920, "BaseApp class size mismatch.");

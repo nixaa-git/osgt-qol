@@ -3,6 +3,7 @@ set (SOURCES
     dllmain.cpp
     game/game.cpp
     game/options.cpp
+    game/struct/background.cpp
     patch/patch.cpp
     utils/utils.cpp
 )

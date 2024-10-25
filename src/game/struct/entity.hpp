@@ -13,7 +13,7 @@ class Entity : public boost::signals::trackable
         RemoveAllComponents();
     }
 
-    void* m_unused; // Not sure. Our trackable is 24 bytes. Should be 32.
+    void* m_unused; // Not sure.
 
     void SetName(std::string name);
     std::string GetName() { return m_name; }

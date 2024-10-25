@@ -12,7 +12,7 @@ class Background : public boost::signals::trackable
     Background();
     virtual ~Background();
 
-    virtual void Render(Vec2f screenSize, bool bInWorld);
+    virtual void Render(Vec2f screenSize, float graphicDetail);
     virtual void Init(bool);
     virtual void Update();
     virtual void RenderForeground(Vec2f, float);
@@ -29,7 +29,7 @@ class Background : public boost::signals::trackable
     bool m_bParticles = false;
 
     // Used for the weather change animation/fade
-    float m_fadeTime = 1.0f;
+    float m_fadeProgress = 1.0f;
 
     // They're all floats, but no idea what they're used for yet.
     // For BackgroundNight it was "0.0, 0.0, 1.0, 1.0"
@@ -43,3 +43,4 @@ class Background : public boost::signals::trackable
     LoopingSound m_loopingSound;
     float m_loopingSoundVol = 0.25f;
 };
+static_assert(sizeof(Background) == 264, "Background class size mismatch.");

@@ -9,3 +9,4 @@ class MapBGComponent : public EntityComponent
     void* m_pBackground;
     void* m_pUnk1;
 };
+static_assert(sizeof(MapBGComponent) == 264, "MapBGComponent class size mismatch.");
