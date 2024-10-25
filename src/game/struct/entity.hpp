@@ -1,10 +1,19 @@
 #pragma once
 #include "component.hpp"
 
-class Entity
+class Entity : public boost::signals::trackable
 {
   public:
-    // Don't include ctor or anything yet. We don't have boost signals.
+    Entity();
+    ~Entity()
+    {
+        sig_onRemoved(this);
+
+        RemoveAllEntities();
+        RemoveAllComponents();
+    }
+
+    void* m_unused; // Not sure. Our trackable is 24 bytes. Should be 32.
 
     void SetName(std::string name);
     std::string GetName() { return m_name; }
@@ -42,6 +51,47 @@ class Entity
             ent->GetEntitiesByName(pEnts, name, depth - 1);
         }
     }
+    void MoveEntityToTopByAddress(Entity* pEnt)
+    {
+        if (!RemoveEntityByAddress(pEnt, false))
+        {
+            printf("Unable to find entity to remove\n");
+            return;
+        }
+
+        m_children.push_back(pEnt);
+    }
+    void MoveEntityToBottomByAddress(Entity* pEnt)
+    {
+        if (!RemoveEntityByAddress(pEnt, false))
+        {
+            printf("Unable to find entity to remove");
+            return;
+        }
+
+        m_children.push_front(pEnt);
+    }
+    bool RemoveEntityByAddress(Entity* pEntToDelete, bool bDeleteAlso)
+    {
+        std::list<Entity*>::iterator itor = m_children.begin();
+
+        while (itor != m_children.end())
+        {
+            if ((*itor) == pEntToDelete)
+            {
+                Entity* pTemp = (*itor);
+                itor = m_children.erase(itor);
+                if (bDeleteAlso)
+                {
+                    delete (pTemp);
+                }
+                return true;
+            }
+            itor++;
+        }
+
+        return false;
+    }
     EntityComponent* GetComponentByName(std::string key)
     {
         for (const auto& comp : m_components)
@@ -56,7 +106,10 @@ class Entity
     {
         return m_sharedDB.GetVarWithDefault(varName, var);
     }
-    FunctionObject * GetFunction(const std::string &funcName) {return m_sharedDB.GetFunction(funcName);}
+    FunctionObject* GetFunction(const std::string& funcName)
+    {
+        return m_sharedDB.GetFunction(funcName);
+    }
 
     Entity* GetParent() { return m_pParent; }
     void SetParent(Entity* pEntity) { m_pParent = pEntity; }
@@ -65,6 +118,35 @@ class Entity
 
     std::list<Entity*>* GetChildren() { return &m_children; }
     std::list<EntityComponent*>* GetComponents() { return &m_components; }
+
+    void RemoveAllEntities()
+    {
+        std::list<Entity*>::iterator itor = m_children.begin();
+        for (; itor != m_children.end();)
+        {
+
+            // done this way so entities that want to do searches through entity trees because some
+            // OnDelete sig was run won't crash
+
+            Entity* pTemp = (*itor);
+            itor = m_children.erase(itor);
+            delete pTemp;
+        }
+
+        m_children.clear();
+    }
+
+    void RemoveAllComponents()
+    {
+        std::list<EntityComponent*>::iterator itor = m_components.begin();
+        for (; itor != m_components.end(); itor++)
+        {
+            (*itor)->OnRemove();
+            delete (*itor);
+        }
+
+        m_components.clear();
+    }
 
     void PrintTreeAsText(int indent = 0)
     {
@@ -97,16 +179,17 @@ class Entity
         }
     }
 
+    boost::signal<void(Entity*)> sig_onRemoved;
+
   private:
-    uint8_t pad[72];                          // 0
-    std::string m_name;                       // 72
-    std::list<Entity*> m_children;            // 104
-    std::list<EntityComponent*> m_components; // 120
-    VariantDB m_sharedDB;                     // 136
-    Entity* m_pParent;                        // 280
-    bool m_bTaggedForDeletion;                // 288
-    int m_recursiveFilterReferences;          // 292
-    Variant* m_pPosVarCache;                  // 296
-    CL_Vec2f* m_pSizeCache;                   // 304
-    uint32_t* m_pAlignment;                   // 312
+    std::string m_name;
+    std::list<Entity*> m_children;
+    std::list<EntityComponent*> m_components;
+    VariantDB m_sharedDB;
+    Entity* m_pParent;
+    bool m_bTaggedForDeletion;
+    int m_recursiveFilterReferences;
+    Variant* m_pPosVarCache;
+    CL_Vec2f* m_pSizeCache;
+    uint32_t* m_pAlignment;
 };

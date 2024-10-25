@@ -1,5 +1,6 @@
 #include "game/game.hpp"
 #include "game/signatures.hpp"
+#include "game/struct/component.hpp"
 #include "patch/patch.hpp"
 
 #include "game/struct/entity.hpp"
@@ -154,8 +155,17 @@ class ServerSwitcher : public patch::BasePatch
 
     static __int64 __fastcall OnlineMenuOnConnect(Entity* pEnt)
     {
-        // pEnt is the "Connect" button. We can ask for "osgt_qol_server_input" here.
-        Entity* pServerInput = pEnt->GetParent()->GetEntityByName("osgt_qol_server_input");
+        // pEnt is normally "Connect" button, but if you enter the game via Enter hotkey, then it
+        // will be null.
+        Entity* pServerInput = nullptr;
+        if (pEnt)
+            pServerInput = pEnt->GetParent()->GetEntityByName("osgt_qol_server_input");
+        else
+            pServerInput = real::GetEntityRoot()
+                               ->GetEntityByName("GUI")
+                               ->GetEntityByName("OnlineMenu")
+                               ->GetEntityByName("osgt_qol_server_input");
+
         if (pServerInput != nullptr)
         {
             // If the patch takes too long to load, the element may not even exist.
@@ -176,7 +186,9 @@ class ServerSwitcher : public patch::BasePatch
         if (URI == "growtopia/server_data.php")
         {
             pVList->Get(0).Set(serverOverride);
-            real::LogToConsole(std::string("Using `w" + serverOverride + "`` as the server data provider...").c_str());
+            real::LogToConsole(
+                std::string("Using `w" + serverOverride + "`` as the server data provider...")
+                    .c_str());
         }
         real::HTTPComponentInitAndStart(this_, pVList);
     }

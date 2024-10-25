@@ -8,12 +8,10 @@ class FunctionObject
     boost::signal<void(VariantList*)> sig_function;
 };
 
-#pragma pack(push, 1)
-
 class VariantDB
 {
   public:
-    virtual ~VariantDB();
+    virtual ~VariantDB() { DeleteAll(); }
     void Print()
     {
         printf("Listing VariantDB contents\n");
@@ -24,6 +22,10 @@ class VariantDB
             printf("%s\n", s.c_str());
         }
         printf("*********************\n");
+        for (auto& var : m_functionData)
+        {
+            printf("FUN-%s\n", var.first.c_str());
+        }
     }
 
     FunctionObject* GetFunction(const std::string& key)
@@ -92,10 +94,33 @@ class VariantDB
         return pData;
     }
 
+    void DeleteAll()
+    {
+        stdext::hash_map<std::string, Variant*>::iterator itor = m_data.begin();
+        while (itor != m_data.end())
+        {
+            if (itor->second)
+            {
+                delete (itor->second);
+                itor->second = 0;
+            }
+            itor++;
+        }
+
+        m_data.clear();
+        { // so I can use "itor" again
+            stdext::hash_map<std::string, FunctionObject*>::iterator itor = m_functionData.begin();
+            while (itor != m_functionData.end())
+            {
+                delete (itor->second);
+                itor++;
+            }
+        }
+        m_functionData.clear();
+    }
+
   private:
     stdext::hash_map<std::string, Variant*> m_data;
     stdext::hash_map<std::string, FunctionObject*> m_functionData;
     stdext::hash_map<std::string, Variant*>::iterator m_nextItor;
 };
-
-#pragma pack(pop)
