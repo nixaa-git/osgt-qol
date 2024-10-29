@@ -1,10 +1,9 @@
 #pragma once
 
 #include "boost/signals/trackable.hpp"
-#include "loopingsound.hpp"
-#include "variant.hpp"
-#include "vec.hpp"
-
+#include "game/struct/loopingsound.hpp"
+#include "game/struct/variant.hpp"
+#include "game/struct/vec.hpp"
 
 class Background : public boost::signals::trackable
 {
@@ -12,11 +11,11 @@ class Background : public boost::signals::trackable
     Background();
     virtual ~Background();
 
-    virtual void Render(Vec2f screenSize, float graphicDetail);
+    virtual void Render(Vec2f& vScreenPos, float graphicDetail);
     virtual void Init(bool);
     virtual void Update();
     virtual void RenderForeground(Vec2f, float);
-    virtual void SetScale(Vec2f);
+    virtual void SetScale(Vec2f&);
     virtual void UpdateSFXVolume(float vol);
 
     void OnEnterForeground(VariantList*);
@@ -31,13 +30,9 @@ class Background : public boost::signals::trackable
     // Used for the weather change animation/fade
     float m_fadeProgress = 1.0f;
 
-    // They're all floats, but no idea what they're used for yet.
-    // For BackgroundNight it was "0.0, 0.0, 1.0, 1.0"
-    // Changing them affected nothing.
-    float m_unk1;
-    float m_unk2;
-    float m_unk3;
-    float m_unk4;
+    // These two are primarily used in parallax scrolling
+    Vec2f m_screenSize;
+    Vec2f m_scale = Vec2f(1.0f, 1.0f);
 
     Rectf m_renderRect;
     LoopingSound m_loopingSound;

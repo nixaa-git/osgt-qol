@@ -6,6 +6,16 @@
 class Vec2f
 {
   public:
+    Vec2f()
+    {
+        x = 0;
+        y = 0;
+    }
+    Vec2f(float n)
+    {
+        x = n;
+        y = n;
+    }
     Vec2f(float x, float y)
     {
         this->x = x;
@@ -24,6 +34,12 @@ class Vec2f
 class Vec3f
 {
   public:
+    Vec3f()
+    {
+        x = 0;
+        y = 0;
+        z = 0;
+    }
     Vec3f(float x, float y, float z)
     {
         this->x = x;
@@ -45,10 +61,10 @@ class Rectf
   public:
     Rectf()
     {
-        this->left = 0;
-        this->top = 0;
-        this->right = 0;
-        this->bottom = 0;
+        left = 0;
+        top = 0;
+        right = 0;
+        bottom = 0;
     }
     Rectf(float left, float top, float right, float bottom)
     {

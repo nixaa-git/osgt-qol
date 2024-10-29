@@ -16,17 +16,6 @@ REGISTER_GAME_FUNCTION(AudioManagerFMODPlay,
                        __fastcall, void*, void* this_, std::string fName, bool bLooping,
                        bool bIsMusic, bool bAddBasePath, bool bForceStreaming)
 
-// AudioManagerFMOD::SetMusicVol
-REGISTER_GAME_FUNCTION(AudioManagerFMODSetMusicVol,
-                       "40 53 48 83 EC 30 48 8B D9 0F 29 74 24 20 48 8B 89 A8 00", __fastcall, void,
-                       void* this_, float musicVol)
-
-// GetAudioManager
-REGISTER_GAME_FUNCTION(
-    GetAudioManager,
-    "F3 44 0F 10 ? ? ? ? ? F3 44 0F 10 ? ? ? ? ? 44 38 B6 D9 02 00 00 0F 84 ? ? ? ? E8 ? ? ? ?",
-    __fastcall, void*);
-
 class AudioStutterPatch : public patch::BasePatch
 {
   public:
@@ -70,11 +59,6 @@ class StartMusicSliderBackport : public patch::BasePatch
         // VariantDB's "start_vol" key.
 
         auto& game = game::GameHarness::get();
-        // Resolve functions.
-        real::AudioManagerFMODSetMusicVol = game.findMemoryPattern<AudioManagerFMODSetMusicVol_t>(
-            pattern::AudioManagerFMODSetMusicVol);
-        real::GetAudioManager = utils::resolveRelativeCall<GetAudioManager_t>(
-            game.findMemoryPattern<uint8_t*>(pattern::GetAudioManager) + 31);
 
         // We re-use "start_vol" variable from newer client. Modern client users get to keep their
         // preference.

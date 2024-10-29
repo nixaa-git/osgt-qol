@@ -24,13 +24,16 @@ void setup()
     {
         // Initialize game harness and apply patches.
         game.initialize();
-        game.setWindowVisible(false);
+        // Silence audio while we setup loading screen
+        game.toggleGameAudio();
+        game.resolveRenderSigs();
+        game.toggleLoadScreen();
+        // We can re-enable it now.
         game.toggleGameAudio();
         optionsMgr.initialize();
         patchMgr.applyPatchesFromFile("patches.txt");
         game.setWindowTitle("Growtopia [OSGT-QOL]");
-        game.setWindowVisible(true);
-        game.toggleGameAudio();
+        game.toggleLoadScreen();
         std::fprintf(stderr, "Done applying patches.\n");
     }
     catch (const std::exception& e)

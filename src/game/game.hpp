@@ -39,6 +39,13 @@ class GameHarness
     // initialization of other objects).
     void initialize();
 
+    // Temporarily used to store various function signature resolves that are used in structs/classes.
+    // This should be probably reworked when an API-consumer model is created.
+    void resolveRenderSigs();
+
+    // Toggles the loading screen
+    void toggleLoadScreen();
+
     // Search game memory for a specific byte pattern. Returns a pointer to the first occurrence.
     // Throws std::invalid_argument on invalid pattern or std::runtime_error if failed to find.
     template <typename T = void*> T findMemoryPattern(const std::string& pattern);

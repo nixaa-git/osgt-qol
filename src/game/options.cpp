@@ -11,8 +11,6 @@ REGISTER_GAME_FUNCTION(OptionsMenuAddContent,
                        "0F 29 A0 58 FF FF FF 44 0F 29 A8 48 FF FF FF 48 8B 05 0F",
                        __fastcall, void, void* pScrollChild, void*, void*, void*);
 
-REGISTER_GAME_FUNCTION(GetApp, "44 0F 28 F8 E8 ? ? ? ? 48 8B C8 48 8D", __fastcall, App*);
-
 // CreateSlider
 // NOTE: Need to investigate the final strings. They're not there originally in Proton SDK.
 REGISTER_GAME_FUNCTION(
@@ -44,11 +42,6 @@ REGISTER_GAME_FUNCTION(GetEntityRoot,
 REGISTER_GAME_FUNCTION(GetFontAndScaleToFitThisLinesPerScreenY,
                        "48 89 5C 24 08 57 48 83 EC 50 0F 29 74 24 40 48 8B DA", __fastcall, void,
                        uint32_t& fontID, float& fontScale, float lines);
-
-// CreateTextLabelEntity
-REGISTER_GAME_FUNCTION(CreateTextLabelEntity, "48 8B C4 55 57 41 56 48 8D 68 A9 48 81 EC D0 00",
-                       __fastcall, Entity*, Entity* pParentEnt, std::string name, float vPosX,
-                       float vPosY, std::string);
 
 // SetupTextEntity
 REGISTER_GAME_FUNCTION(SetupTextEntity,
@@ -82,16 +75,6 @@ REGISTER_GAME_FUNCTION(iPhoneMapY,
                        "C0 F3 0F 5E 05 AE 28",
                        __fastcall, float, float);
 
-// DrawFilledRect
-REGISTER_GAME_FUNCTION(DrawFilledRect,
-                       "48 83 EC 58 F3 41 0F 10 01 48 8D 44 24 40 F3 41 0F 10 49 04 0F", __fastcall,
-                       void, const Rectf& rect, uint32_t rgba, float unk3, Vec2f* unk4);
-
-// GetScreenRect
-REGISTER_GAME_FUNCTION(GetScreenRect,
-                       "66 0F 6E 05 0C 7C 4B 00 33 C0 66 0F 6E 0D FE 7B 4B 00 0F 5B C0 48",
-                       __fastcall, void, Rectf&);
-
 namespace game
 {
 
@@ -108,13 +91,9 @@ void game::OptionsManager::initialize()
     // Resolve our needed functions
     real::CreateSlider = game.findMemoryPattern<CreateSlider_t>(pattern::CreateSlider);
     real::CreateCheckBox = game.findMemoryPattern<CreateCheckBox_t>(pattern::CreateCheckBox);
-    real::GetApp =
-        utils::resolveRelativeCall<GetApp_t>(game.findMemoryPattern<uint8_t*>(pattern::GetApp) + 4);
     real::GetFontAndScaleToFitThisLinesPerScreenY =
         game.findMemoryPattern<GetFontAndScaleToFitThisLinesPerScreenY_t>(
             pattern::GetFontAndScaleToFitThisLinesPerScreenY);
-    real::CreateTextLabelEntity =
-        game.findMemoryPattern<CreateTextLabelEntity_t>(pattern::CreateTextLabelEntity);
     real::SetupTextEntity = game.findMemoryPattern<SetupTextEntity_t>(pattern::SetupTextEntity);
     real::iPadMapX = game.findMemoryPattern<iPadMapX_t>(pattern::iPadMapX);
     real::iPadMapY = game.findMemoryPattern<iPadMapY_t>(pattern::iPadMapY);
@@ -125,10 +104,6 @@ void game::OptionsManager::initialize()
 
     auto addr = game.findMemoryPattern<uint8_t*>(pattern::GetEntityRoot);
     real::GetEntityRoot = utils::resolveRelativeCall<GetEntityRoot_t>(addr + 5);
-
-    // Move elsewhere later
-    real::DrawFilledRect = game.findMemoryPattern<DrawFilledRect_t>(pattern::DrawFilledRect);
-    real::GetScreenRect = game.findMemoryPattern<GetScreenRect_t>(pattern::GetScreenRect);
 
     // Hook
     game.hookFunctionPatternDirect<OptionsMenuAddContent_t>(

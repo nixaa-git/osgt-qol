@@ -24,6 +24,9 @@ class BaseApp
     virtual void OnMessage();
     virtual void OnMemoryWarning();
 
+    float GetDelta() { return m_gameTimer.m_deltaFloat; }
+    int GetDeltaTick() { return m_gameTimer.m_deltaMS; }
+
     boost::signal<void(VariantList*)> m_sig_input;
     boost::signal<void(VariantList*)> m_sig_input_move;
     boost::signal<void(VariantList*)> m_sig_os;

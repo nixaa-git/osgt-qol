@@ -7,6 +7,9 @@ class GameLogicComponent : public EntityComponent
   public:
     void* GetTileMap() { return (uint8_t*)m_pWorld + 16; }
 
+    int GetTileWidth() { return *(int*)(reinterpret_cast<uint8_t*>(GetTileMap()) + 8); }
+    int GetTileHeight() { return *(int*)(reinterpret_cast<uint8_t*>(GetTileMap()) + 12); }
+
     uint8_t pad1[88];
     void* m_pWorld;         // World*
     void* m_pWorldRenderer; // WorldRenderer*

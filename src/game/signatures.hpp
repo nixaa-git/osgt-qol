@@ -28,6 +28,24 @@ DEFINE_GAME_FUNCTION(iPadMapX, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPadMapY, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPhoneMapX, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPhoneMapY, __fastcall, float, float);
+
+// Declared in drawing.cpp
 DEFINE_GAME_FUNCTION(DrawFilledRect, __fastcall, void, const Rectf& rect, uint32_t rgba, float unk3,
                      Vec2f* unk4);
 DEFINE_GAME_FUNCTION(GetScreenRect, __fastcall, void, Rectf&);
+DEFINE_GAME_FUNCTION(SurfaceCtor, __thiscall, void*, void*);
+DEFINE_GAME_FUNCTION(SurfaceDtor, __thiscall, void, void*);
+DEFINE_GAME_FUNCTION(SurfaceLoadFile, __fastcall, bool, void*, std::string, bool);
+DEFINE_GAME_FUNCTION(SurfaceBlitScaled, __fastcall, void, void* pSurf, float x, float y,
+                     CL_Vec2f& vScale, int alignment, unsigned int rgba, float rotation,
+                     void* pRenderBatcher, bool flipX, bool flipY);
+DEFINE_GAME_FUNCTION(SurfaceAnimCtor, __thiscall, void*, void*);
+DEFINE_GAME_FUNCTION(SurfaceAnimDtor, __thiscall, void, void*);
+DEFINE_GAME_FUNCTION(SurfaceAnimBlitScaledAnim, __thiscall, void, void* pAnimSurf, float x, float y,
+                     int frameX, int frameY, CL_Vec2f* vScale, int alignment, unsigned int rgba,
+                     float rotation, CL_Vec2f* vRotationPt, bool flipX, bool flipY, void* pBatcher,
+                     int padding);
+
+// Need a better place for it.
+DEFINE_GAME_FUNCTION(GetAudioManager, __fastcall, void*);
+DEFINE_GAME_FUNCTION(AudioManagerFMODSetMusicVol, __fastcall, void, void* this_, float musicVol)

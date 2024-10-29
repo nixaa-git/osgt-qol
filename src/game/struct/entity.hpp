@@ -1,11 +1,18 @@
 #pragma once
+#include "boost/bind/bind.hpp"
 #include "component.hpp"
+
 
 class Entity : public boost::signals::trackable
 {
   public:
-    Entity();
-    ~Entity()
+    Entity() { OneTimeInit(); }
+    Entity(std::string name)
+    {
+        m_name = name;
+        OneTimeInit();
+    }
+    virtual ~Entity()
     {
         sig_onRemoved(this);
 
@@ -13,10 +20,41 @@ class Entity : public boost::signals::trackable
         RemoveAllComponents();
     }
 
-    void* m_unused; // Not sure.
-
     void SetName(std::string name);
     std::string GetName() { return m_name; }
+
+    Entity* AddEntity(Entity* pEntity)
+    {
+        pEntity->SetParent(this);
+        m_children.push_back(pEntity);
+        return pEntity;
+    }
+
+    void OneTimeInit()
+    {
+        m_pPosVarCache = NULL;
+        m_pAlignment = NULL;
+        m_pSizeCache = NULL;
+        m_recursiveFilterReferences = 0;
+        m_bTaggedForDeletion = false;
+        m_pParent = NULL;
+
+        GetFunction("OnDelete")->sig_function.connect(1, boost::bind(&Entity::OnDelete, this, _1));
+    }
+
+    void OnDelete(VariantList* pVList)
+    {
+        if (GetParent())
+        {
+            GetParent()->RemoveEntityByAddress(this);
+        }
+        else
+        {
+            // no parent?  Fine, kill us anyway
+            delete this;
+            return;
+        }
+    }
 
     Entity* GetEntityByName(std::string key)
     {
@@ -71,7 +109,7 @@ class Entity : public boost::signals::trackable
 
         m_children.push_front(pEnt);
     }
-    bool RemoveEntityByAddress(Entity* pEntToDelete, bool bDeleteAlso)
+    bool RemoveEntityByAddress(Entity* pEntToDelete, bool bDeleteAlso = true)
     {
         std::list<Entity*>::iterator itor = m_children.begin();
 

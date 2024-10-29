@@ -2,8 +2,13 @@
 set (SOURCES
     dllmain.cpp
     game/game.cpp
+    game/drawing.cpp
     game/options.cpp
-    game/struct/background.cpp
+    game/struct/graphics/background.cpp
+    game/struct/graphics/background_clouds.cpp
+    game/struct/graphics/background_default.cpp
+    game/struct/graphics/background_blood.cpp
+    game/struct/graphics/surface.cpp
     patch/patch.cpp
     utils/utils.cpp
 )
