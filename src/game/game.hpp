@@ -110,13 +110,16 @@ class OptionsManager
     enum GameOptionType : uint8_t
     {
         OPTION_SLIDER,
-        OPTION_CHECKBOX
+        OPTION_CHECKBOX,
+        OPTION_MULTICHOICE
     };
     struct GameOption
     {
         OptionsManager::GameOptionType type;
         std::string varName;
         std::string displayName;
+        std::vector<std::string>* displayOptions;
+        float vModSizeX = 0;
         void* signal;
     };
     // Get OptionsManager instance
@@ -155,6 +158,28 @@ class OptionsManager
         options.push_back(option);
     }
 
+    // Adds a multi-choice option to end of GameOptions list.
+    // varName points to a variable in save.dat.
+    // displayName is the string visible above the multichoice option.
+    // displayOptions is the "pretty name" corresponding to the numeric variable.
+    // vMmodSizeX is optional parameter if you need larger size than vSizeX 180
+    // Draws an option that looks roughly:
+    // displayName
+    // [<] [ displayOptions[var] ] [>]
+    void addMultiChoiceOption(std::string varName, std::string displayName,
+                              std::vector<std::string>& displayOptions,
+                              VariantListCallback pCallback, float vModSizeX = 0)
+    {
+        GameOption option;
+        option.type = OPTION_MULTICHOICE;
+        option.varName = varName;
+        option.displayName = displayName;
+        option.displayOptions = &displayOptions;
+        option.signal = (void*)pCallback;
+        option.vModSizeX = vModSizeX;
+        options.push_back(option);
+    }
+
     // All of the custom options we have made are stored here.
     std::vector<GameOption> options;
 
@@ -164,6 +189,8 @@ class OptionsManager
                              float& vPosY);
     static void renderCheckbox(OptionsManager::GameOption& optionDef, void* pEntPtr, float vPosX,
                                float& vPosY);
+    static void renderMultiChoice(OptionsManager::GameOption& optionDef, void* pEntPtr, float vPosX,
+                                  float& vPosY);
 
     // Fastcalls used in hooks
     static void __fastcall OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, void* unk4);

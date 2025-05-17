@@ -79,6 +79,12 @@ REGISTER_GAME_FUNCTION(CreateTextLabelEntity, "48 8B C4 55 57 41 56 48 8D 68 A9 
                        __fastcall, Entity*, Entity* pParentEnt, std::string name, float vPosX,
                        float vPosY, std::string);
 
+// SetTextEntity
+REGISTER_GAME_FUNCTION(SetTextEntity,
+                       "48 8B C4 55 57 41 56 48 8D 68 A1 48 81 EC B0 00 00 00 48 C7 45 B7 FE FF FF "
+                       "FF 48 89 58 18 48 89 70 20 48",
+                       __fastcall, void, Entity*, std::string);
+
 // GetFontAndScaleToFitThisLinesPerScreenY
 REGISTER_GAME_FUNCTION(GetFontAndScaleToFitThisLinesPerScreenY,
                        "48 89 5C 24 08 57 48 83 EC 50 0F 29 74 24 40 48 8B DA", __fastcall, void,
@@ -114,6 +120,8 @@ void GameHarness::resolveRenderSigs()
 
     real::SurfaceAnimCtor = findMemoryPattern<SurfaceAnimCtor_t>(pattern::SurfaceAnimCtor);
     real::SurfaceAnimDtor = findMemoryPattern<SurfaceAnimDtor_t>(pattern::SurfaceAnimDtor);
+
+    real::SetTextEntity = findMemoryPattern<SetTextEntity_t>(pattern::SetTextEntity);
 }
 
 static uint8_t loadScreenState = 0;

@@ -30,7 +30,7 @@ Background_Default::Background_Default()
 
     m_pBGClouds = new Background_Clouds((Background*)this, "game/cloud.rttex", 0, 0);
 
-    m_bIsSpring = true;
+    m_bIsSpring = false;
 }
 
 Background_Default::~Background_Default()

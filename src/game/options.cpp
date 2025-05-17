@@ -1,7 +1,9 @@
 #include "game.hpp"
 #include "game/struct/entity.hpp"
 #include "signatures.hpp"
+#include "struct/rtrect.hpp"
 #include "struct/variant.hpp"
+
 
 // OptionsMenuAddContent
 REGISTER_GAME_FUNCTION(OptionsMenuAddContent,
@@ -30,6 +32,14 @@ REGISTER_GAME_FUNCTION(
     __fastcall, Entity*, Entity* pBG, std::string name, std::string text, float x, float y,
     bool bChecked, uint32_t fontID, float fontScale, bool unclickable, std::string unk10,
     std::string unk11, std::string unk12)
+
+// CreateTextButtonEntity
+REGISTER_GAME_FUNCTION(CreateTextButtonEntity,
+                       "48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 68 B8 48 81 EC 08 01 00 "
+                       "00 48 C7 45 A0 FE FF FF FF",
+                       __fastcall, Entity*, Entity* pParentEnt, std::string name, float x, float y,
+                       std::string text, bool bUnderline, int unk7, std::string unk8, bool unk9,
+                       std::string unk10, bool unk11, bool unk12)
 
 // ResizeScrollBounds
 // Params: VariantList with Entity containing "Scroll" and "scroll_child"
@@ -74,6 +84,8 @@ void game::OptionsManager::initialize()
     // Resolve our needed functions
     real::CreateSlider = game.findMemoryPattern<CreateSlider_t>(pattern::CreateSlider);
     real::CreateCheckBox = game.findMemoryPattern<CreateCheckBox_t>(pattern::CreateCheckBox);
+    real::CreateTextButtonEntity =
+        game.findMemoryPattern<CreateTextButtonEntity_t>(pattern::CreateTextButtonEntity);
     real::iPadMapX = game.findMemoryPattern<iPadMapX_t>(pattern::iPadMapX);
     real::iPadMapY = game.findMemoryPattern<iPadMapY_t>(pattern::iPadMapY);
     real::iPhoneMapX = game.findMemoryPattern<iPhoneMapX_t>(pattern::iPhoneMapX);
@@ -144,6 +156,66 @@ void OptionsManager::renderCheckbox(OptionsManager::GameOption& optionDef, void*
     vPosY += pCheckbox->GetVar("size2d")->GetVector2().y;
 }
 
+void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, void* pEntityPtr,
+                                       float vPosX, float& vPosY)
+{
+    if (optionDef.displayOptions->size() == 0)
+        return;
+
+    float vSizeX = real::iPhoneMapX(180.0f) + real::iPhoneMapX(optionDef.vModSizeX);
+
+    Entity* pEnt = reinterpret_cast<Entity*>(pEntityPtr);
+
+    // Namespace it for multichoice callbacks to find label easier
+    Entity* pMCEnt = new Entity("opt_mc_container");
+    pEnt->AddEntity(pMCEnt);
+
+    // Pad it similarly to rest of options
+    vPosY += real::iPhoneMapY(20.0);
+
+    // Retrieve fontscale
+    uint32_t fontID;
+    float fontScale;
+    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 20);
+
+    // Create the option label
+    Entity* pOptionsLabel =
+        real::CreateTextLabelEntity(pMCEnt, "optLabel", vPosX, vPosY, optionDef.displayName);
+    real::SetupTextEntity(pOptionsLabel, fontID, fontScale);
+
+    vPosY += pOptionsLabel->GetVar("size2d")->GetVector2().y;
+
+    // Retrieve our variant as we need to set the shown option label with it.
+    uint32_t idx = real::GetApp()->GetVar(optionDef.varName)->GetUINT32();
+    if (idx > optionDef.displayOptions->size())
+    {
+        real::GetApp()->GetVar(optionDef.varName)->Set(0U);
+        idx = 0;
+    }
+
+    // They added some wack trailing args we don't care about to end of TextButtonEntity.
+    Entity* pBackButton = real::CreateTextButtonEntity(pMCEnt, "back", vPosX, vPosY, "<< ", false,
+                                                       0, "", 0, "", 0, 0);
+    Entity* pTextLabel = real::CreateTextLabelEntity(pMCEnt, "txt", vPosX + (vSizeX / 2), vPosY,
+                                                     (*optionDef.displayOptions)[idx]);
+    Entity* pNextButton = real::CreateTextButtonEntity(pMCEnt, "next", vPosX + vSizeX, vPosY, " >>",
+                                                       false, 0, "", 0, "", 0, 0);
+
+    pTextLabel->GetVar("alignment")->Set(ALIGNMENT_UPPER_CENTER);
+    pNextButton->GetVar("alignment")->Set(ALIGNMENT_UPPER_RIGHT);
+
+    if (optionDef.signal != nullptr)
+    {
+        pBackButton->GetFunction("OnButtonSelected")
+            ->sig_function.connect(reinterpret_cast<VariantListCallback>(optionDef.signal));
+        pNextButton->GetFunction("OnButtonSelected")
+            ->sig_function.connect(reinterpret_cast<VariantListCallback>(optionDef.signal));
+    }
+
+    // Adjust margin for next option.
+    vPosY += pNextButton->GetVar("size2d")->GetVector2().y;
+}
+
 void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, void* unk4)
 {
     // Let the game construct options menu for us.
@@ -204,6 +276,11 @@ void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, v
         case game::OptionsManager::OPTION_CHECKBOX:
         {
             renderCheckbox(option, (void*)pScrollChild, vPosX, vPosY);
+            break;
+        }
+        case game::OptionsManager::OPTION_MULTICHOICE:
+        {
+            renderMultiChoice(option, (void*)pScrollChild, vPosX, vPosY);
             break;
         }
         default:

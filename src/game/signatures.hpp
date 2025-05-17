@@ -20,6 +20,10 @@ DEFINE_GAME_FUNCTION(CreateCheckBox, __fastcall, Entity*, Entity* pBG, std::stri
                      std::string text, float x, float y, bool bChecked, uint32_t fontID,
                      float fontScale, bool unclickable, std::string unk10, std::string unk11,
                      std::string unk12)
+DEFINE_GAME_FUNCTION(CreateTextButtonEntity, __fastcall, Entity*, Entity* pParentEnt,
+                     std::string name, float x, float y, std::string text, bool bUnderline,
+                     int unk7, std::string unk8, bool unk9, std::string unk10, bool unk11,
+                     bool unk12)
 DEFINE_GAME_FUNCTION(ResizeScrollBounds, __fastcall, void, VariantList* pVList);
 DEFINE_GAME_FUNCTION(iPadMapX, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPadMapY, __fastcall, float, float);
@@ -43,6 +47,7 @@ DEFINE_GAME_FUNCTION(SurfaceAnimBlitScaledAnim, __thiscall, void, void* pAnimSur
                      int frameX, int frameY, CL_Vec2f* vScale, int alignment, unsigned int rgba,
                      float rotation, CL_Vec2f* vRotationPt, bool flipX, bool flipY, void* pBatcher,
                      int padding);
+DEFINE_GAME_FUNCTION(SetTextEntity, __fastcall, void, Entity*, std::string);
 DEFINE_GAME_FUNCTION(CreateTextLabelEntity, __fastcall, Entity*, Entity* pParentEnt,
                      std::string name, float vPosX, float vPosY, std::string);
 DEFINE_GAME_FUNCTION(SetupTextEntity, __fastcall, void, Entity*, uint32_t eFontID, float fontScale);

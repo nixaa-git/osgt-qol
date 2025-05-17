@@ -8,19 +8,12 @@ REGISTER_GAME_FUNCTION(AboutMenuAddScrollContent,
                        "48 8B C4 55 41 56 41 57 48 8D A8 F8 FB FF FF 48 81 EC F0 04", __fastcall,
                        void, Entity*);
 
-REGISTER_GAME_FUNCTION(SetTextEntity,
-                       "48 8B C4 55 57 41 56 48 8D 68 A1 48 81 EC B0 00 00 00 48 C7 45 B7 FE FF FF "
-                       "FF 48 89 58 18 48 89 70 20 48",
-                       __fastcall, void, Entity*, std::string);
-
 class AboutMenuAttribution : public patch::BasePatch
 {
   public:
     void apply() const override
     {
         auto& game = game::GameHarness::get();
-        // Setup borrowed game functions.s
-        real::SetTextEntity = game.findMemoryPattern<SetTextEntity_t>(pattern::SetTextEntity);
         // Hook AboutMenuAddScrollContent.
         game.hookFunctionPatternDirect<AboutMenuAddScrollContent_t>(
             pattern::AboutMenuAddScrollContent, AboutMenuAddScrollContent,
@@ -73,8 +66,10 @@ class AboutMenuAttribution : public patch::BasePatch
     static std::string GetAttributionText()
     {
         auto patches = patch::PatchManager::get().getAppliedUserPatchList();
-        std::string text = "\nOSGT-QOL V1.0-ALPHA\n`6Game modification created by `wCernodile`` and "
-                        "`whouz``. There are currently `w" + std::to_string(patches.size()) + "`` patches applied: ";
+        std::string text =
+            "\nOSGT-QOL V1.0-ALPHA\n`6Game modification created by `wCernodile`` and "
+            "`whouz``. There are currently `w" +
+            std::to_string(patches.size()) + "`` patches applied: ";
         // Create comma-separated list of patches.
         for (size_t i = 0; i < patches.size(); i++)
         {
