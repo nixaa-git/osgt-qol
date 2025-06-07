@@ -2,9 +2,13 @@
 set (SOURCES
     dllmain.cpp
     game/game.cpp
+    game/input.cpp
+    game/itemapi.cpp
     game/drawing.cpp
     game/options.cpp
     game/weathermanager.cpp
+    game/struct/entityutils.cpp
+    game/struct/components/gamelogic.cpp
     game/struct/graphics/background.cpp
     game/struct/graphics/background_blank.cpp
     game/struct/graphics/background_clouds.cpp
@@ -19,6 +23,7 @@ set (SOURCES_USER_PATCHES
     patch/user/chat.cpp
     patch/user/framerate.cpp
     patch/user/input.cpp
+    patch/user/items.cpp
     patch/user/net.cpp
     patch/user/render.cpp
 )

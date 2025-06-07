@@ -2,6 +2,7 @@
 #include "game.hpp"
 #include "game/struct/component.hpp"
 #include "game/struct/components/mapbg.hpp"
+#include "game/struct/entityutils.hpp"
 #include "patch/patch.hpp"
 #include "signatures.hpp"
 #include <cstdint>
@@ -147,6 +148,11 @@ void GameHarness::toggleLoadScreen()
         // Resolve a subset of functions needed here.
         real::GetApp =
             utils::resolveRelativeCall<GetApp_t>(findMemoryPattern<uint8_t*>(pattern::GetApp) + 4);
+        // We may have gotten here before post-init phase is done. Let's wait a bit.
+        while (!real::GetApp()->m_bDidPostInit)
+        {
+            Sleep(100);
+        }
         real::GetScreenRect = findMemoryPattern<GetScreenRect_t>(pattern::GetScreenRect);
         real::SetupTextEntity = findMemoryPattern<SetupTextEntity_t>(pattern::SetupTextEntity);
         real::CreateOverlayEntity =
@@ -172,11 +178,15 @@ void GameHarness::toggleLoadScreen()
         real::EntitySetScaleBySize(pOverEnt, vScreenSize, 0, 0);
 
         // We inform the user about the patching.
+        // bug: RTFont may not be properly loaded at times.. text ends up shifting or there will be
+        // access violation on render thread.
         Entity* pTextLabel = real::CreateTextLabelEntity(
             pOverEnt, "loadTxt", screenRect.right / 2.0f, screenRect.bottom / 2.0f,
             "`$Please wait!`` Game is currently being patched.");
         // Center-upper align the text.
         pTextLabel->GetVar("alignment")->Set(5U);
+        SetTextShadowColor(pTextLabel, 150);
+
         // Scale text
         uint32_t fontID;
         float fontScale;
@@ -187,6 +197,8 @@ void GameHarness::toggleLoadScreen()
     {
         loadScreenState = 2;
         // Delete our loadscreen.
+        // bug: may be running OnUpdate on main thread when we do this sometimes, so it causes an
+        // access violation.
         real::GetApp()->m_entityRoot->RemoveEntityByAddress(
             real::GetApp()->m_entityRoot->GetEntityByName("LoadScreenMenu"));
 

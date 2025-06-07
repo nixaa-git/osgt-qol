@@ -168,8 +168,8 @@ class ServerSwitcher : public patch::BasePatch
         if (pEnt)
             pServerInput = pEnt->GetParent()->GetEntityByName("osgt_qol_server_input");
         else
-            pServerInput = real::GetApp()->m_entityRoot
-                               ->GetEntityByName("GUI")
+            pServerInput = real::GetApp()
+                               ->m_entityRoot->GetEntityByName("GUI")
                                ->GetEntityByName("OnlineMenu")
                                ->GetEntityByName("osgt_qol_server_input");
 

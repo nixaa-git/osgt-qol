@@ -193,28 +193,29 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
         idx = 0;
     }
 
-    // They added some wack trailing args we don't care about to end of TextButtonEntity.
-    Entity* pBackButton = real::CreateTextButtonEntity(pMCEnt, "back", vPosX, vPosY, " << ", false,
-                                                       0, "", 0, "", 0, 0);
-    Entity* pTextLabel = real::CreateTextLabelEntity(pMCEnt, "txt", vPosX + (vSizeX / 2), vPosY,
-                                                     (*optionDef.displayOptions)[idx]);
-    Entity* pNextButton = real::CreateTextButtonEntity(pMCEnt, "next", vPosX + vSizeX, vPosY,
-                                                       " >> ", false, 0, "", 0, "", 0, 0);
-
-    pTextLabel->GetVar("alignment")->Set(ALIGNMENT_UPPER_CENTER);
-    pNextButton->GetVar("alignment")->Set(ALIGNMENT_UPPER_RIGHT);
-
+    // Re-scale for the multichoice modal itself.
     real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 20);
 
+    // They added some wack trailing args we don't care about to end of TextButtonEntity.
+    // bug: BMPRectAroundEntity was acting erratic, sometimes sizing its height down to infinity,
+    // disabled for now.
+    Entity* pBackButton = real::CreateTextButtonEntity(pMCEnt, "back", vPosX, vPosY, " << ", false,
+                                                       0, "", 0, "", 0, 0);
     real::SetupTextEntity(pBackButton, fontID, fontScale);
-    real::SetupTextEntity(pTextLabel, fontID, fontScale);
-    real::SetupTextEntity(pNextButton, fontID, fontScale);
-
+    // real::AddBMPRectAroundEntity(pBackButton, 0xccb887ff, 0xccb887ff, real::iPadMapY(5.0));
     SetTextShadowColor(pBackButton, 150);
-    SetTextShadowColor(pNextButton, 150);
 
-    real::AddBMPRectAroundEntity(pBackButton, 0xccb887ff, 0xccb887ff, real::iPadMapY(5.0));
-    real::AddBMPRectAroundEntity(pNextButton, 0xccb887ff, 0xccb887ff, real::iPadMapY(5.0));
+    Entity* pTextLabel = real::CreateTextLabelEntity(pMCEnt, "txt", vPosX + (vSizeX / 2), vPosY,
+                                                     (*optionDef.displayOptions)[idx]);
+    pTextLabel->GetVar("alignment")->Set(ALIGNMENT_UPPER_CENTER);
+    real::SetupTextEntity(pTextLabel, fontID, fontScale);
+
+    Entity* pNextButton = real::CreateTextButtonEntity(pMCEnt, "next", vPosX + vSizeX, vPosY,
+                                                       " >> ", false, 0, "", 0, "", 0, 0);
+    pNextButton->GetVar("alignment")->Set(ALIGNMENT_UPPER_RIGHT);
+    real::SetupTextEntity(pNextButton, fontID, fontScale);
+    // real::AddBMPRectAroundEntity(pNextButton, 0xccb887ff, 0xccb887ff, real::iPadMapY(5.0));
+    SetTextShadowColor(pNextButton, 150);
 
     if (optionDef.signal != nullptr)
     {

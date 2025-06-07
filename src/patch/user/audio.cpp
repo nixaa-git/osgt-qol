@@ -94,6 +94,9 @@ class StartMusicSliderBackport : public patch::BasePatch
 
     static void StartVolumeSliderCallback(Variant* pVariant)
     {
+        // It ignores the setting if it's 0.00f, so lets just make it 1% as fallback.
+        if (pVariant->GetFloat() == 0.00f)
+            pVariant->Set(0.01f);
         real::GetApp()->GetVar("start_vol")->Set(pVariant->GetFloat());
         real::AudioManagerFMODSetMusicVol(real::GetAudioManager(), pVariant->GetFloat());
     }

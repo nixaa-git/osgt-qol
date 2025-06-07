@@ -11,6 +11,7 @@
 // Entry point.
 void setup()
 {
+    SetThreadDescription(GetCurrentThread(), L"OSGT-QOL Mod Thread");
 #ifndef NDEBUG
     // Create a console window for debug builds.
     AllocConsole();
@@ -21,6 +22,8 @@ void setup()
     auto& game = game::GameHarness::get();
     auto& patchMgr = patch::PatchManager::get();
     auto& optionsMgr = game::OptionsManager::get();
+    auto& input = game::InputEvents::get();
+    auto& itemAPI = game::ItemAPI::get();
     auto& weatherMgr = game::WeatherManager::get();
     try
     {
@@ -29,6 +32,8 @@ void setup()
         game.toggleLoadScreen();
         game.resolveRenderSigs();
         optionsMgr.initialize();
+        input.initialize();
+        itemAPI.initialize();
         weatherMgr.initialize();
         patchMgr.applyPatchesFromFile("patches.txt");
         game.toggleLoadScreen();

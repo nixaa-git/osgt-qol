@@ -9,6 +9,7 @@
 #include "utils/utils.hpp"
 
 #include "game/struct/component.hpp"
+#include "game/struct/components/gamelogic.hpp"
 #include "game/struct/components/mapbg.hpp"
 #include "game/struct/entity.hpp"
 #include "game/struct/renderutils.hpp"
@@ -100,6 +101,13 @@ REGISTER_GAME_FUNCTION(
 REGISTER_GAME_FUNCTION(DrawFilledBitmapRect,
                        "48 83 EC 48 66 0F 6E 01 66 0F 6E 49 04 0F B6 44 24 70", __fastcall, void,
                        rtRectf&, uint32_t, uint32_t, void*, bool);
+
+// TouchHandlerComponent
+REGISTER_GAME_FUNCTION(
+    TouchHandlerComponent,
+    "48 89 4C 24 08 53 48 83 EC 50 48 C7 44 24 20 FE FF FF FF 48 8B D9 E8 ? ? ? ? 90 48 8D ? ? ? ? "
+    "? 48 89 03 33 C9 48 89 8B 10 01 00 00 48 89 8B 08 01 00 00 48 C7 44 24 40 0F",
+    __fastcall, EntityComponent*, void*);
 
 static std::vector<std::string> displayNames;
 static uint32_t vanillaWeatherBound = 16;
@@ -428,6 +436,172 @@ class BubbleOpacityBackport : public patch::BasePatch
     }
 };
 REGISTER_USER_GAME_PATCH(BubbleOpacityBackport, bubble_opacity_backport);
+
+class HideMyUI : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        // This patch disables the right-hand UI icons on demand by pressing Ctrl+H.
+        // Particularly useful for world builders who might keep accidentally hitting the buttons
+        // instead.
+        auto& game = game::GameHarness::get();
+
+        real::TouchHandlerComponent =
+            game.findMemoryPattern<TouchHandlerComponent_t>(pattern::TouchHandlerComponent);
+
+        auto& inputEvents = game::InputEvents::get();
+        AddCustomKeybinds();
+        inputEvents.m_sig_onArcadeInput.connect(&OnArcadeInput);
+        inputEvents.m_sig_addWasdKeys.connect(&AddCustomKeybinds);
+
+        // Make the opacity toggleable, default at 33%.
+        Variant* pVariant = real::GetApp()->GetVar("hide_ui_opacity");
+        if (pVariant->GetType() != Variant::TYPE_FLOAT)
+            pVariant->Set(0.33f);
+
+        auto& optionsMgr = game::OptionsManager::get();
+        optionsMgr.addSliderOption("hide_ui_opacity", "Hide UI Opacity",
+                                   &HideUIOpacitySliderCallback);
+        optionsMgr.addCheckboxOption("hide_ui_scrollers", "Hide slider handles too",
+                                     &HideUIScrollHandlesCallback);
+    }
+
+    static void SetSlidersOpacity(float alphaLevel)
+    {
+        Entity* pMenu = real::GetApp()
+                            ->m_entityRoot->GetEntityByName("GUI")
+                            ->GetEntityByName("WorldSpecificGUI")
+                            ->GetEntityByName("GameMenu");
+        if (pMenu)
+        {
+            pMenu->GetEntityByName("ItemsParent")
+                ->GetEntityByName("InventoryGrab")
+                ->GetVar("alpha")
+                ->Set(alphaLevel);
+        }
+        if (real::GetApp()->m_entityRoot->GetEntityByName("ConsoleLogParent"))
+        {
+            real::GetApp()
+                ->m_entityRoot->GetEntityByName("ConsoleLogParent")
+                ->GetEntityByName("ConsoleGrab")
+                ->GetVar("alpha")
+                ->Set(alphaLevel);
+        }
+    }
+
+    static void SetGameMenuOpacity(Entity* pMenu, float alphaLevel)
+    {
+        pMenu->GetEntityByName("MENU")->GetVar("alpha")->Set(alphaLevel);
+        pMenu->GetEntityByName("CHAT")->GetVar("alpha")->Set(alphaLevel);
+        pMenu->GetEntityByName("FRIENDS")->GetVar("alpha")->Set(alphaLevel);
+        pMenu->GetEntityByName("GemTouch")->GetVar("alpha")->Set(alphaLevel);
+        pMenu->GetEntityByName("BuxEnt")->GetVar("alpha")->Set(alphaLevel);
+        Variant* pAlphaVar = pMenu->GetEntityByName("EVENTS")->GetVar("alpha");
+        if (pAlphaVar->GetFloat() != 0.00f)
+            pAlphaVar->Set(alphaLevel);
+        // Also dim the scroll handles for inv/chat
+        if (real::GetApp()->GetVar("hide_ui_scrollers")->GetUINT32() == 1)
+            SetSlidersOpacity(alphaLevel);
+    }
+
+    static void HideUIOpacitySliderCallback(Variant* pVariant)
+    {
+        real::GetApp()->GetVar("hide_ui_opacity")->Set(pVariant->GetFloat());
+        Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
+        Entity* pMenu = pGUI->GetEntityByName("WorldSpecificGUI")->GetEntityByName("GameMenu");
+        if (pMenu != nullptr)
+        {
+            if (!pMenu->GetEntityByName("MENU")->GetComponentByName("TouchHandler"))
+            {
+                float alphaLevel = pVariant->GetFloat();
+                SetGameMenuOpacity(pMenu, alphaLevel);
+            }
+        }
+    }
+
+    static void HideUIScrollHandlesCallback(VariantList* pVariant)
+    {
+        Entity* pCheckbox = pVariant->Get(1).GetEntity();
+        bool bChecked = pCheckbox->GetVar("checked")->GetUINT32() != 0;
+        real::GetApp()->GetVar("hide_ui_scrollers")->Set(uint32_t(bChecked));
+        if (bChecked)
+            SetSlidersOpacity(real::GetApp()->GetVar("hide_ui_opacity")->GetFloat());
+        else
+            SetSlidersOpacity(1.00f);
+    }
+
+    static void __fastcall OnArcadeInput(VariantList* pVL)
+    {
+        if (pVL->Get(0).GetUINT32() == 610001)
+        {
+            if (real::GetApp()->GetGameLogic()->IsDialogOpened())
+                return;
+
+            Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
+            if (pGUI->GetEntityByName("OptionsMenu"))
+                return;
+            // GUI -> WorldSpecificGUI always exists. GameMenu only does when in a world.
+            Entity* pMenu = pGUI->GetEntityByName("WorldSpecificGUI")->GetEntityByName("GameMenu");
+            if (pMenu != nullptr)
+            {
+                // Change opacity of disabled elements to 33% and remove their TouchHandler
+                float alphaLevel = real::GetApp()->GetVar("hide_ui_opacity")->GetFloat();
+                bool bDisabling = true;
+                if (!pMenu->GetEntityByName("MENU")->GetComponentByName("TouchHandler"))
+                {
+                    alphaLevel = 1.00f;
+                    bDisabling = false;
+                }
+
+                if (bDisabling)
+                {
+                    // TouchHandler is responsible for sinking the input for the entity, we want to
+                    // get rid of it.
+                    pMenu->GetEntityByName("MENU")->RemoveComponentByName("TouchHandler");
+                    pMenu->GetEntityByName("CHAT")->RemoveComponentByName("TouchHandler");
+                    pMenu->GetEntityByName("FRIENDS")->RemoveComponentByName("TouchHandler");
+                    pMenu->GetEntityByName("EVENTS")->RemoveComponentByName("TouchHandler");
+                    pMenu->GetEntityByName("GemTouch")->RemoveComponentByName("TouchHandler");
+
+                    // If the fade-in animation is going on, suspend it.
+                    if (pMenu->GetEntityByName("MENU")->GetComponentByName("Interpolate"))
+                    {
+                        pMenu->GetEntityByName("MENU")->RemoveComponentByName("Interpolate");
+                        pMenu->GetEntityByName("CHAT")->RemoveComponentByName("Interpolate");
+                        pMenu->GetEntityByName("FRIENDS")->RemoveComponentByName("Interpolate");
+                        pMenu->GetEntityByName("EVENTS")->RemoveComponentByName("Interpolate");
+                        pMenu->GetEntityByName("GemTouch")->RemoveComponentByName("Interpolate");
+                        pMenu->GetEntityByName("BuxEnt")->RemoveComponentByName("Interpolate");
+                    }
+                }
+                else
+                {
+                    // Bring back the input sink for buttons.
+                    pMenu->GetEntityByName("MENU")->AddComponent(
+                        real::TouchHandlerComponent(operator new(0x120)));
+                    pMenu->GetEntityByName("CHAT")->AddComponent(
+                        real::TouchHandlerComponent(operator new(0x120)));
+                    pMenu->GetEntityByName("FRIENDS")->AddComponent(
+                        real::TouchHandlerComponent(operator new(0x120)));
+                    pMenu->GetEntityByName("EVENTS")->AddComponent(
+                        real::TouchHandlerComponent(operator new(0x120)));
+                    pMenu->GetEntityByName("GemTouch")
+                        ->AddComponent(real::TouchHandlerComponent(operator new(0x120)));
+                }
+
+                SetGameMenuOpacity(pMenu, alphaLevel);
+            }
+        }
+    }
+
+    static void AddCustomKeybinds()
+    {
+        // Binds Ctrl+H key to hide UI
+        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_hideUI", 72, 610001, 1, 1);
+    }
+};
+REGISTER_USER_GAME_PATCH(HideMyUI, hide_my_ui);
 
 class RemoveCheckboxPadding : public patch::BasePatch
 {

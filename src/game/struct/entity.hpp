@@ -2,7 +2,6 @@
 #include "boost/bind/bind.hpp"
 #include "component.hpp"
 
-
 class Entity : public boost::signals::trackable
 {
   public:
@@ -130,12 +129,61 @@ class Entity : public boost::signals::trackable
 
         return false;
     }
+
+    EntityComponent* AddComponent(EntityComponent* pComp)
+    {
+        m_components.push_back(pComp);
+        pComp->OnAdd(this);
+        return pComp;
+    }
     EntityComponent* GetComponentByName(std::string key)
     {
         for (const auto& comp : m_components)
             if (comp->GetName() == key)
                 return comp;
         return nullptr;
+    }
+
+    bool RemoveComponentByName(const std::string& name)
+    {
+        std::list<EntityComponent*>::iterator itor = m_components.begin();
+
+        while (itor != m_components.end())
+        {
+            if ((*itor)->GetName() == name)
+            {
+                (*itor)->OnRemove();
+                delete (*itor);
+                itor = m_components.erase(itor);
+                return true;
+            }
+            itor++;
+        }
+
+        return false;
+    }
+
+    bool RemoveComponentByAddress(EntityComponent* pCompToDelete, bool bDeleteAlso = true)
+    {
+        std::list<EntityComponent*>::iterator itor = m_components.begin();
+
+        while (itor != m_components.end())
+        {
+            if ((*itor) == pCompToDelete)
+            {
+                EntityComponent* pTemp = (*itor);
+                itor = m_components.erase(itor);
+                if (bDeleteAlso)
+                {
+                    pTemp->OnRemove();
+                    delete (pTemp);
+                }
+                return true;
+            }
+            itor++;
+        }
+
+        return false;
     }
 
     VariantDB* GetShared() { return &m_sharedDB; }

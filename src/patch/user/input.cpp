@@ -1,37 +1,11 @@
 #include "game/game.hpp"
 #include "game/signatures.hpp"
 #include "game/struct/app.hpp"
-#include "game/struct/entity.hpp"
 #include "game/struct/component.hpp"
 #include "game/struct/components/gamelogic.hpp"
+#include "game/struct/entity.hpp"
 #include "patch/patch.hpp"
 #include "utils/utils.hpp"
-
-// NetControllerLocal::OnArcadeInput
-// Params: this, keyCode, bKeyFired
-REGISTER_GAME_FUNCTION(NetControllerLocalOnArcadeInput,
-                       "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 41 0F B6 D8 8B F2 48 8B F9 ? "
-                       "? ? ? ? 48 8B C8 ? ? ? ? ? 48",
-                       __fastcall, void, void*, int, bool);
-
-// GetArcadeComponent
-// Returns: ArcadeComponent* (derived from EntityComponent)
-REGISTER_GAME_FUNCTION(GetArcadeComponent,
-                       "E8 ? ? ? ? 48 8B C8 45 33 C9 44 0F B6 C3 33 D2 E8 ? ? ? ?", __fastcall,
-                       EntityComponent*);
-
-// AddKeyBinding
-// Params: Parent EntityComponent*, Keybind name, ASCII input code, Output code for callback, bool
-// bAlsoSendAsNormalRawKey (?), modifiersRequired (1 requries CTRL, 0 none)
-REGISTER_GAME_FUNCTION(AddKeyBinding, "40 55 56 57 48 8D AC 24 50 FD FF FF 48 81 EC B0", __fastcall,
-                       void, EntityComponent* pComp, std::string name, uint32_t inputcode,
-                       uint32_t outputcode, bool bAlsoSendAsNormalRawKey,
-                       uint32_t modifiersRequired);
-
-// AddWASDKeys
-REGISTER_GAME_FUNCTION(AddWASDKeys,
-                       "40 55 48 8B EC 48 83 EC 50 F3 0F 10 05 1F 72 22 00 F3 0F 10 0D BF 7C",
-                       __fastcall, void);
 
 // ToolSelectComponent::OnTouchStart
 // Params: this
@@ -39,15 +13,12 @@ REGISTER_GAME_FUNCTION(ToolSelectComponentOnTouchStart,
                        "48 89 5C 24 10 48 89 6C 24 20 56 48 81 EC A0 00 00 00 F3 0F 2C 05 FE 6D 35",
                        __fastcall, void, void*);
 
-// GameLogicComponent::DialogIsOpen
-// Returns: bool
-// Params: this
-REGISTER_GAME_FUNCTION(
-    GameLogicComponentDialogIsOpen,
-    "40 55 48 8B EC 48 83 EC 50 48 C7 45 D0 FE FF FF FF 48 89 5C 24 60 48 89 7C 24 68 48 8B",
-    __fastcall, bool, GameLogicComponent*);
+REGISTER_GAME_FUNCTION(AddSpacebarBinding,
+                       "48 83 EC 58 48 83 3D ? ? ? ? ? F3 0F 10 ? ? ? ? ? F3 0F 58 ? ? ? ? ? F3 0F "
+                       "11 ? ? ? ? ? 74 7B E8 ? ? ? ? E8",
+                       __fastcall, void);
 
-class HotkeyPatch : public patch::BasePatch
+class QuickbarHotkeys : public patch::BasePatch
 {
   public:
     void apply() const override
@@ -72,35 +43,25 @@ class HotkeyPatch : public patch::BasePatch
 
         auto& game = game::GameHarness::get();
         // Resolve functions we need.
-        real::GetArcadeComponent = utils::resolveRelativeCall<GetArcadeComponent_t>(
-            game.findMemoryPattern<uint8_t*>(pattern::GetArcadeComponent));
-        real::AddKeyBinding = game.findMemoryPattern<AddKeyBinding_t>(pattern::AddKeyBinding);
         real::ToolSelectComponentOnTouchStart =
             game.findMemoryPattern<ToolSelectComponentOnTouchStart_t>(
                 pattern::ToolSelectComponentOnTouchStart);
-        real::GameLogicComponentDialogIsOpen =
-            game.findMemoryPattern<GameLogicComponentDialogIsOpen_t>(
-                pattern::GameLogicComponentDialogIsOpen);
 
         // AddWASDKeys already is invoked by game. Add our custom binds here.
         AddCustomKeybinds();
 
-        // Hook.
-        game.hookFunctionPatternDirect<NetControllerLocalOnArcadeInput_t>(
-            pattern::NetControllerLocalOnArcadeInput, NetControllerLocalOnArcadeInput,
-            &real::NetControllerLocalOnArcadeInput);
-        game.hookFunctionPatternDirect<AddWASDKeys_t>(pattern::AddWASDKeys, AddWASDKeys,
-                                                      &real::AddWASDKeys);
+        auto& inputEvents = game::InputEvents::get();
+        inputEvents.m_sig_netControllerInput.connect(&NetControllerLocalOnArcadeInput);
+        inputEvents.m_sig_addWasdKeys.connect(&AddCustomKeybinds);
     }
 
     static void __fastcall NetControllerLocalOnArcadeInput(void* this_, int keyCode, bool bKeyFired)
     {
         // Our custom mappings right now are just on keycode >= 600000
         // See AddCustomKeybinds function.
-        // nit: InputProvider or the likes for patches to share arcadeinput callbacks?
-        if (keyCode >= 600000)
+        if (keyCode >= 600000 && keyCode <= 600003)
         {
-            if (real::GameLogicComponentDialogIsOpen(real::GetApp()->GetGameLogic()))
+            if (real::GetApp()->GetGameLogic()->IsDialogOpened())
                 return;
 
             // We only want to act if they key is pressed, not released.
@@ -128,14 +89,6 @@ class HotkeyPatch : public patch::BasePatch
             }
             return;
         }
-        // Pass on rest of the keys (e.g. WASD/Space)
-        real::NetControllerLocalOnArcadeInput(this_, keyCode, bKeyFired);
-    }
-
-    static void __fastcall AddWASDKeys()
-    {
-        real::AddWASDKeys();
-        AddCustomKeybinds();
     }
 
     static void AddCustomKeybinds()
@@ -151,4 +104,53 @@ class HotkeyPatch : public patch::BasePatch
         real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect3", 99, 600003, 0, 0);
     }
 };
-REGISTER_USER_GAME_PATCH(HotkeyPatch, hotkey_patch);
+REGISTER_USER_GAME_PATCH(QuickbarHotkeys, quickbar_hotkey_patch);
+
+class QuickToggleSpaceToPunch : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        auto& game = game::GameHarness::get();
+
+        // Resolve functions we need.
+        real::AddSpacebarBinding =
+            game.findMemoryPattern<AddSpacebarBinding_t>(pattern::AddSpacebarBinding);
+
+        // AddWASDKeys already is invoked by game. Add our custom binds here.
+        AddCustomKeybinds();
+
+        auto& inputEvents = game::InputEvents::get();
+        inputEvents.m_sig_netControllerInput.connect(&NetControllerLocalOnArcadeInput);
+        inputEvents.m_sig_addWasdKeys.connect(&AddCustomKeybinds);
+    }
+
+    static void __fastcall NetControllerLocalOnArcadeInput(void* this_, int keyCode, bool bKeyFired)
+    {
+        if (keyCode == 600004)
+        {
+            if (real::GetApp()->GetGameLogic()->IsDialogOpened())
+                return;
+
+            // We only want to act if they key is pressed, not released.
+            if (bKeyFired)
+            {
+                Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
+                // We don't want the key presses to happen when we can't even see our quickbar.
+                if (pGUI->GetEntityByName("OptionsMenu"))
+                    return;
+            }
+
+            Variant* pVariant = real::GetApp()->GetVar("useSpacebarForPunch");
+            pVariant->Set(pVariant->GetUINT32() == 1 ? 0U : 1U);
+            real::AddSpacebarBinding();
+        }
+    }
+
+    static void AddCustomKeybinds()
+    {
+        // CTRL+P
+        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_togglestp", 80, 600004, 1, 1);
+    }
+};
+REGISTER_USER_GAME_PATCH(QuickToggleSpaceToPunch, quick_toggle_space_to_punch);

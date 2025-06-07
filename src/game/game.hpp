@@ -220,7 +220,7 @@ class WeatherManager
     // This will resolve and hook all the functions needed to provide an API for weathers
     void initialize();
 
-    void refreshIDs();
+    static void refreshItemDB();
 
     // Registers a weather under WeatherManager. Defaults to unmapped weather ID (-1).
     // The weather ID is assigned by the server by setting extra file path as
@@ -236,6 +236,42 @@ class WeatherManager
     static void __thiscall WorldRendererForceBackground(uint8_t* this_, int WeatherID, void* unk3,
                                                         void* unk4);
 };
+
+// For now this just serves as a way to get signalled on events.
+class ItemAPI
+{
+  public:
+    static ItemAPI& get();
+
+    void initialize();
+
+    boost::signal<void(void)> m_sig_loadFromMem;
+
+  private:
+    static void __thiscall ItemInfoManagerLoadFromMem(void* this_, char* pBytes, bool arg3);
+};
+
+// Serves as a way for multiple patches to subscribe to input functions.
+class InputEvents
+{
+  public:
+    static InputEvents& get();
+
+    void initialize();
+
+    // NOTE: This also fires when dialogs or options is open, mods have to do their own checks if
+    // they care.
+    boost::signal<void(void)> m_sig_addWasdKeys;
+    boost::signal<void(VariantList*)> m_sig_onArcadeInput;
+    boost::signal<void(void*, int, bool)> m_sig_netControllerInput;
+
+  private:
+    static void __fastcall OnArcadeInput(VariantList* pVL);
+    static void __fastcall NetControllerLocalOnArcadeInput(void* this_, int keyCode,
+                                                           bool bKeyFired);
+    static void __fastcall AddWASDKeys();
+};
+
 } // namespace game
 
 ///////////////////////////////////

@@ -34,6 +34,35 @@ void game::WeatherManager::initialize()
     game.hookFunctionPatternDirect<WorldRendererForceBackground_t>(
         pattern::WorldRendererForceBackground, WorldRendererForceBackground,
         &real::WorldRendererForceBackground);
+
+    auto& itemapi = game::ItemAPI::get();
+    itemapi.m_sig_loadFromMem.connect(&game::WeatherManager::refreshItemDB);
+}
+
+void game::WeatherManager::refreshItemDB()
+{
+    auto& weatherMgr = game::WeatherManager::get();
+    for (auto item : real::GetApp()->GetItemInfoManager()->m_items)
+    {
+        // We only care about weathers
+        if (item.category != 41)
+            continue;
+        // Registering weather server-side works by setting alt-path to
+        // loader/weather/pretty_name.
+        if (item.altPath.size() > 0)
+        {
+            if (item.altPath.rfind("loader/weather/", 0) == 0)
+            {
+                std::string prettyName = item.altPath.substr(15);
+                auto pair = weatherMgr.weathers.find(prettyName);
+                if (pair != weatherMgr.weathers.end())
+                {
+                    // a match, map it
+                    pair->second.mappedID = item.animationMS;
+                }
+            }
+        }
+    }
 }
 
 void game::WeatherManager::registerWeather(std::string prettyName, WeatherCallback pCallback,
@@ -49,41 +78,14 @@ void game::WeatherManager::registerWeather(std::string prettyName, WeatherCallba
     evt->m_prettyName = prettyName;
     evt->m_pCustWeather = &ret.first->second;
     (weatherMgr.m_sig_eventSubscribe)(evt);
+    delete evt;
 }
 
 void __thiscall game::WeatherManager::WorldRendererForceBackground(uint8_t* this_, int WeatherID,
                                                                    void* unk3, void* unk4)
 {
     auto& weatherMgr = game::WeatherManager::get();
-    // Have we enumerated custom weathers yet?
-    // This runs pretty much instant on a modern PC, but I don't like the solution. Ideally this
-    // should run after ItemInfoManager::LoadFromMem. Maybe we need subscribe events for those,
-    // since there may be others that want to know that too down the line.
-    if (!weatherMgr.mappedWeathers)
-    {
-        for (auto item : real::GetApp()->GetItemInfoManager()->m_items)
-        {
-            // We only care about weathers
-            if (item.category != 41)
-                continue;
-            // Registering weather server-side works by setting alt-path to
-            // loader/weather/pretty_name.
-            if (item.altPath.size() > 0)
-            {
-                if (item.altPath.rfind("loader/weather/", 0) == 0)
-                {
-                    std::string prettyName = item.altPath.substr(15);
-                    auto pair = weatherMgr.weathers.find(prettyName);
-                    if (pair != weatherMgr.weathers.end())
-                    {
-                        // a match, map it
-                        pair->second.mappedID = item.animationMS;
-                    }
-                }
-            }
-        }
-        weatherMgr.mappedWeathers = true;
-    }
+
     for (auto pair : weatherMgr.weathers)
     {
         if (WeatherID == pair.second.mappedID)

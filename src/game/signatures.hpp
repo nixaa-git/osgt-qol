@@ -59,5 +59,11 @@ DEFINE_GAME_FUNCTION(FadeInEntity, __fastcall, void, Entity* pEnt, bool bRecursi
                      int delayMS, float fadeTarget, int timing);
 DEFINE_GAME_FUNCTION(MainMenuCreate, __fastcall, void, Entity*, bool);
 
+// Declared in input.cpp
+DEFINE_GAME_FUNCTION(GetArcadeComponent, __fastcall, EntityComponent*);
+DEFINE_GAME_FUNCTION(AddKeyBinding, __fastcall, void, EntityComponent* pComp, std::string name,
+                     uint32_t inputcode, uint32_t outputcode, bool bAlsoSendAsNormalRawKey,
+                     uint32_t modifiersRequired);
+
 // Declared in weathermanager.cpp
 DEFINE_GAME_FUNCTION(WorldRendererForceBackground, __thiscall, void, uint8_t*, int, void*, void*);

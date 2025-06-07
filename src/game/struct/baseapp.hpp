@@ -3,6 +3,7 @@
 #include "gametimer.hpp"
 #include <cstdint>
 #include <string>
+#include "rtfont.hpp"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -51,7 +52,7 @@ class BaseApp
     bool m_bInitted;
     GameTimer m_gameTimer;
     uint8_t m_console[176];
-    uint8_t m_fontArray[384 * 4]; // 3 RTFont + destructor
+    RTFont m_fontArray[4];
     uint8_t m_OSMessages[40];     // A deque with <OSMessage>
     bool m_bManualRotation;
     uint8_t padding2[7];

@@ -10,6 +10,8 @@ class GameLogicComponent : public EntityComponent
     int GetTileWidth() { return *(int*)(reinterpret_cast<uint8_t*>(GetTileMap()) + 8); }
     int GetTileHeight() { return *(int*)(reinterpret_cast<uint8_t*>(GetTileMap()) + 12); }
 
+    bool IsDialogOpened();
+
     uint8_t pad1[88];
     void* m_pWorld;         // World*
     void* m_pWorldRenderer; // WorldRenderer*
