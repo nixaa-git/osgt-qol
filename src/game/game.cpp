@@ -21,9 +21,7 @@ void GameHarness::initialize()
     imageSize = mi.SizeOfImage;
 
     // Get game window handle.
-    window = FindWindowA(nullptr, "Growtopia");
-    if (window == nullptr)
-        throw std::runtime_error("Failed to get game window handle.");
+    updateWindowHandle();
 
     // Initialize minhook.
     MH_STATUS status = MH_Initialize();
@@ -42,4 +40,10 @@ void GameHarness::setWindowTitle(const std::string& title)
     SetWindowTextA(window, title.c_str());
 }
 
+void GameHarness::updateWindowHandle()
+{
+    window = FindWindowA(nullptr, "Growtopia");
+    if (window == nullptr)
+        throw std::runtime_error("Failed to get game window handle.");
+}
 } // namespace game

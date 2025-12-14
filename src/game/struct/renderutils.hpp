@@ -22,3 +22,5 @@ inline uint32_t ModAlpha(uint32_t c1, float alphaMod)
 
     return MAKE_RGBA(r, g, b, uint8_t(float(a) * alphaMod));
 }
+
+float SinPulseByCustomTimerMS(int ms, unsigned int timerMS);

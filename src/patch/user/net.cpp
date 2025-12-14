@@ -1,6 +1,7 @@
 #include "game/game.hpp"
 #include "game/signatures.hpp"
 #include "game/struct/component.hpp"
+#include "game/struct/components/gamelogic.hpp"
 #include "patch/patch.hpp"
 
 #include "game/struct/entity.hpp"
@@ -63,6 +64,11 @@ REGISTER_GAME_FUNCTION(LogToConsole,
                        "48 89 4C 24 08 48 89 54 24 10 4C 89 44 24 18 4C 89 4C 24 20 53 57 B8 88 10 "
                        "00 00 ? ? ? ? ? 48 2B E0 48 8B 05 86 E4 2D",
                        __fastcall, void, const char*);
+
+REGISTER_GAME_FUNCTION(
+    GameLogicComponentOnLogonAccepted,
+    "48 8B C4 55 56 57 41 54 41 55 41 56 41 57 48 8D 68 A8 48 81 EC 20 01 00 00 48 C7 44 24 38 FE",
+    __fastcall, void, GameLogicComponent*, VariantList*);
 
 class ServerSwitcher : public patch::BasePatch
 {
@@ -249,3 +255,57 @@ class CacheLocationFixer : public patch::BasePatch
     static std::string __fastcall GetAppCachePath() { return cachePath; }
 };
 REGISTER_USER_GAME_PATCH(CacheLocationFixer, cache_location_fixer);
+
+class AllowReleasingMutex : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        // Patch out Internal Memory Error 49
+        auto& game = game::GameHarness::get();
+        auto addr = game.findMemoryPattern<uint8_t*>(
+            "E8 ? ? ? ? 48 8B C8 33 D2 E8 ? ? ? ? E8 ? ? ? ? 4C 8B C0 48 8D ? ? ? ? ? 45 33 C9 33");
+        utils::nopMemory(addr, 47);
+    }
+};
+REGISTER_USER_GAME_PATCH(AllowReleasingMutex, allow_releasing_mutex);
+
+class AcceptOlderLogonIdentifier : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        auto& game = game::GameHarness::get();
+        real::GameLogicComponentOnLogonAccepted =
+            game.findMemoryPattern<GameLogicComponentOnLogonAccepted_t>(
+                pattern::GameLogicComponentOnLogonAccepted);
+
+        std::vector<std::string> logonFunctions = {"OnSuperMainStartAcceptLogonFB211131ddf",
+                                                   "OnSuperMainStartAcceptLogonFB211131dd",
+                                                   "OnSuperMainStartAcceptLogonFB211131d",
+                                                   "OnSuperMainStartAcceptLogonFB211131",
+                                                   "OnSuperMainStartAcceptLogonFB21113",
+                                                   "OnSuperMainStartAcceptLogonFB2111",
+                                                   "OnSuperMainStartAcceptLogonFB211",
+                                                   "OnSuperMainStartAcceptLogonFB21",
+                                                   "OnSuperMainStartAcceptLogonFB2",
+                                                   "OnSuperMainStartAcceptLogonFB",
+                                                   "OnSuperMainStartAcceptLogonF",
+                                                   "OnSuperMainStartAcceptLogon",
+                                                   "OnAcceptLogon",
+                                                   "OnFirstLogonAccepted",
+                                                   "OnLogonAccepted",
+                                                   "OnInitialLogonAccepted"};
+
+        for (auto logonFunction : logonFunctions)
+        {
+            real::GetApp()
+                ->GetGameLogic()
+                ->GetShared()
+                ->GetFunction(logonFunction)
+                ->sig_function.connect(1, boost::bind(real::GameLogicComponentOnLogonAccepted,
+                                                      real::GetApp()->GetGameLogic(), _1));
+        }
+    }
+};
+REGISTER_USER_GAME_PATCH(AcceptOlderLogonIdentifier, accept_old_onsuperlogon);

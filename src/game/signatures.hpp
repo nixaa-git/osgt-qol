@@ -58,6 +58,7 @@ DEFINE_GAME_FUNCTION(AddBMPRectAroundEntity, __fastcall, void, Entity* pEnt, uin
 DEFINE_GAME_FUNCTION(FadeInEntity, __fastcall, void, Entity* pEnt, bool bRecursive, int timeMS,
                      int delayMS, float fadeTarget, int timing);
 DEFINE_GAME_FUNCTION(MainMenuCreate, __fastcall, void, Entity*, bool);
+DEFINE_GAME_FUNCTION(SetupEntityIconFromItem, __fastcall, Entity*, int* ItemID, Entity* ParentEntity, Vec2f* Position, int, bool bDrawBorder);
 
 // Declared in input.cpp
 DEFINE_GAME_FUNCTION(GetArcadeComponent, __fastcall, EntityComponent*);

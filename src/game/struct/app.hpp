@@ -1,6 +1,7 @@
 #pragma once
 #include "baseapp.hpp"
 #include "iteminfomanager.hpp"
+#include "enetclient.hpp"
 #include "variantdb.hpp"
 
 class GameLogicComponent;
@@ -29,9 +30,9 @@ class App : public BaseApp
     uint8_t pad1[88]; // Unidentified
     uint8_t m_audioCache[88];
     void* m_pUnk2;
-    void* m_pClient; // ENetClient*
+    ENetClient* m_pClient;
     void* m_pUnk3;
-    uint8_t m_console[176];
+    Console m_logConsole;
     bool m_bDidPostInit;
     uint8_t pad3[7]; // Probably compiler padding
     VariantDB m_sharedDB;

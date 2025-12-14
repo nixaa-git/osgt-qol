@@ -12,10 +12,12 @@
 #include "game/struct/components/gamelogic.hpp"
 #include "game/struct/components/mapbg.hpp"
 #include "game/struct/entity.hpp"
+#include "game/struct/entityutils.hpp"
 #include "game/struct/renderutils.hpp"
 #include "game/struct/rtrect.hpp"
 #include "game/struct/variant.hpp"
-#include <vcruntime_new_debug.h>
+
+#include "game/struct/world/world.hpp"
 
 // Background_Sunset::Background_Sunset
 REGISTER_GAME_FUNCTION(BackgroundSunset,
@@ -108,6 +110,36 @@ REGISTER_GAME_FUNCTION(
     "48 89 4C 24 08 53 48 83 EC 50 48 C7 44 24 20 FE FF FF FF 48 8B D9 E8 ? ? ? ? 90 48 8D ? ? ? ? "
     "? 48 89 03 33 C9 48 89 8B 10 01 00 00 48 89 8B 08 01 00 00 48 C7 44 24 40 0F",
     __fastcall, EntityComponent*, void*);
+
+REGISTER_GAME_FUNCTION(AvatarDataGetSetAsUint16,
+                       "0F 10 41 0C 0F 11 02 0F B7 41 1C 66 89 42 10 F3 0F 10 ? ? ? ? ? F3 0F 58 ? "
+                       "? ? ? ? F3 0F 11 ? ? ? ? ? C3",
+                       __fastcall, void, void*, uint16_t*);
+
+REGISTER_GAME_FUNCTION(WorldRendererTileLineOfSight,
+                       "48 8B C4 48 89 78 10 55 48 8D 68 A9 48 81 EC E0 00 00 00 0F 29 70 E8",
+                       __fastcall, bool, void*, Tile*, Tile*, float, float*);
+REGISTER_GAME_FUNCTION(WorldRendererDrawTiles, "48 8B C4 55 57 41 54 41 55 41 57", __fastcall, void,
+                       void*, std::vector<Tile*>*, int);
+
+REGISTER_GAME_FUNCTION(CreateOptionsMenu,
+                       "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 83 39 00 48 8B "
+                       "F9 75 1E C7 01 05 00 00 00 C7 41 10 00 00 00 00",
+                       __fastcall, void, VariantList*);
+REGISTER_GAME_FUNCTION(InitLog, "40 55 48 8B EC 48 81 EC 80 00 00 00 48 C7 45 D0 FE FF FF FF",
+                       __fastcall, void);
+REGISTER_GAME_FUNCTION(KillGameMenu,
+                       "40 55 48 8B EC 48 83 EC 50 48 C7 45 D0 FE FF FF FF 48 89 5C 24 60 48 8B ? "
+                       "? ? ? ? 48 33 C4 48 89 45 F8 0F B6 D9 E8",
+                       __fastcall, void, bool);
+REGISTER_GAME_FUNCTION(
+    GameMenuCreate,
+    "48 8B C4 55 48 8D 68 A1 48 81 EC 00 01 00 00 48 C7 45 87 FE FF FF FF 48 89 58 10 48 89 70 18",
+    __fastcall, void, Entity*);
+REGISTER_GAME_FUNCTION(OnPressingBackDuringGameplay,
+                       "48 8B C4 55 41 56 41 57 48 8D 68 C8 48 81 EC 20 01 00 00 48 C7 44 24 28 FE "
+                       "FF FF FF 48 89 58 08 48 89 70 10 48 89 78 18",
+                       __fastcall, void);
 
 static std::vector<std::string> displayNames;
 static uint32_t vanillaWeatherBound = 16;
@@ -635,3 +667,279 @@ class BloodMoonDemoWeather : public patch::BasePatch
     static Background* onWeatherCreate() { return new Background_Blood(); }
 };
 REGISTER_USER_GAME_PATCH(BloodMoonDemoWeather, blood_moon_demo_weather);
+
+class DaVinciFakeID : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        // Modifies avatars to portray old Da Vinci Wings ID as new one.
+        // Cosmetic issue with this approach is that it shows as unequipped in inventory.
+        auto& game = game::GameHarness::get();
+        game.hookFunctionPatternDirect<AvatarDataGetSetAsUint16_t>(
+            pattern::AvatarDataGetSetAsUint16, AvatarDataGetSetAsUint16,
+            &real::AvatarDataGetSetAsUint16);
+    }
+
+    static void __fastcall AvatarDataGetSetAsUint16(void* this_, uint16_t* set)
+    {
+        real::AvatarDataGetSetAsUint16(this_, set);
+        if (set[6] == 3308)
+            set[6] = 8286;
+    }
+};
+REGISTER_USER_GAME_PATCH(DaVinciFakeID, fake_davinci_id);
+
+static bool g_bLightSourcesOptimized = true;
+static int g_fLightSourceOptimizeLevel = 5;
+class LightSourceOptimizer : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        // The way Growtopia calculates where light should spread is very inefficient - for every
+        // light source, it will scan the entire tilemap in your viewport. That is rather expensive
+        // with a ton of light emitters on a large zoom (such as mod zoom).
+        //
+        // This mod partially rewrites that logic by instead doing a maximum 5x5 rectangular search
+        // for darkened tiles and applies light calculation to them only.
+        //
+        // On a machine using Ryzen 7 8845HS with Radeon 780M - the performance difference on a
+        // 100x56 area full of Chandelier blocks. For control to see efficiency of the light
+        // calculations, a reference world with same parameters was created, but instead of
+        // Chandelier (a light emitter, animated block), it was filled with Party Cacti (non-light
+        // emitter, animated block).
+        //
+        // Unpatched: 10-11 FPS
+        // Patched: 158-172 FPS
+        // Reference world: 168-178 FPS
+        // Frame cap: 200 FPS (240 Hz)
+
+        auto& game = game::GameHarness::get();
+
+        game.hookFunctionPatternDirect<WorldRendererDrawTiles_t>(
+            pattern::WorldRendererDrawTiles, WorldRendererDrawTiles, &real::WorldRendererDrawTiles);
+
+        real::WorldRendererTileLineOfSight = game.findMemoryPattern<WorldRendererTileLineOfSight_t>(
+            pattern::WorldRendererTileLineOfSight);
+
+        Variant* pVariant = real::GetApp()->GetVar("osgt_qol_lightopt_rad");
+        if (pVariant->GetType() != Variant::TYPE_FLOAT)
+            pVariant->Set(1.00f);
+        else
+            g_fLightSourceOptimizeLevel = (int)(pVariant->GetFloat() * 5.0f);
+
+        pVariant = real::GetApp()->GetVar("osgt_qol_lightopt_enabled");
+        if (pVariant->GetType() != Variant::TYPE_UINT32)
+            pVariant->Set(uint32_t(1));
+        else
+            g_bLightSourcesOptimized = pVariant->GetUINT32() == 1;
+
+        auto& optionsMgr = game::OptionsManager::get();
+        optionsMgr.addCheckboxOption("osgt_qol_lightopt_enabled", "Optimize Light Emitters",
+                                     &LightOptimizerToggle);
+        optionsMgr.addSliderOption("osgt_qol_lightopt_rad",
+                                   "Light Emitter Strength `a(See more at expense of fps)``",
+                                   &LightOptimizerSlider);
+    }
+
+    static void LightOptimizerSlider(Variant* pVariant)
+    {
+        // We scale float 0.0-1.0 to 0-5 radius during light calculation.
+        float origLvl = pVariant->GetFloat();
+        if (origLvl >= 1.0f)
+        {
+            g_fLightSourceOptimizeLevel = 5;
+            real::GetApp()->GetVar("osgt_qol_lightopt_rad")->Set(origLvl);
+        }
+        else
+        {
+            float radLvl = float(uint32_t(origLvl * 5.0f)) / 5.0f;
+            g_fLightSourceOptimizeLevel = (int)(radLvl * 5.0f);
+            real::GetApp()->GetVar("osgt_qol_lightopt_rad")->Set(radLvl);
+        }
+    }
+
+    static void LightOptimizerToggle(VariantList* pVariant)
+    {
+        Entity* pCheckbox = pVariant->Get(1).GetEntity();
+        bool bChecked = pCheckbox->GetVar("checked")->GetUINT32() != 0;
+        g_bLightSourcesOptimized = bChecked;
+        real::GetApp()->GetVar("osgt_qol_lightopt_enabled")->Set(uint32_t(bChecked));
+    }
+
+    static void __fastcall WorldRendererDrawTiles(void* this_, std::vector<Tile*>* tiles, int unk3)
+    {
+        // Disarm original light calc logic by tricking original renderer.
+        // We will be doing our own "light pass" before calling DrawTiles itself.
+        if (unk3 == 0 || !g_bLightSourcesOptimized)
+        {
+            real::WorldRendererDrawTiles(this_, tiles, unk3);
+            return;
+        }
+        // This value happens to dictate if DrawTiles will calculate light levels, so we can
+        // temporarily assign it to a value where it won't do that, we will be doing the light
+        // calculation pass instead.
+        float original = *(float*)(((__int64)this_) + 0x15c);
+        *(float*)(((__int64)this_) + 0x15c) = 0.1f;
+
+        std::vector<ItemInfo>& items = real::GetApp()->GetItemInfoManager()->m_items;
+        int w = real::GetApp()->GetGameLogic()->GetTileWidth();
+        int h = real::GetApp()->GetGameLogic()->GetTileHeight();
+        WorldTileMap* tilemap = (WorldTileMap*)real::GetApp()->GetGameLogic()->GetTileMap();
+        Tile* m_tiles = tilemap->m_tiles;
+        size_t max = tiles->size();
+
+        int r = g_fLightSourceOptimizeLevel;
+
+        int m_timeMS = real::GetApp()->m_gameTimer.m_timeMS;
+
+        for (size_t i = 0; i < max; i++)
+        {
+            Tile* tile = (*tiles)[i];
+            int vis = items[tile->m_itemID].visualType;
+            // Lightsource / Lightsource Pulse / Lightsource If On
+            if ((vis == 34 || vis == 45) || (vis == 35 && (tile->m_tileProperties & 64)))
+            {
+                int x = tile->x;
+                int y = tile->y;
+
+                // Interpolation logic same as original.
+                float lightStrength = SinPulseByCustomTimerMS(4000, (x + y) * 100 + m_timeMS);
+                lightStrength = (lightStrength * 0.25f + 1.0f) * 128.0f;
+
+                int minX = x - r;
+                if (minX < 0)
+                    minX = 0;
+                int maxX = x + r;
+                if (maxX > w)
+                    maxX = w;
+
+                int minY = y - r;
+                if (minY < 0)
+                    minY = 0;
+                int maxY = y + r;
+                if (maxY > h)
+                    maxY = h;
+
+                Tile* target = nullptr;
+                for (x = minX; x < maxX; x++)
+                {
+                    for (y = minY; y < maxY; y++)
+                    {
+                        target = &m_tiles[x + (y * w)];
+                        vis = items[target->m_itemBGID].visualType;
+                        // Only do light calculations if we're on a darkened tile.
+                        if (vis == 33 || vis == 41)
+                        {
+                            // If we are on a light source, we are already on light level 0.0, skip
+                            // a no-op.
+                            if (target->m_lightLevel > 0.0f)
+                            {
+                                float rayPower;
+                                if (real::WorldRendererTileLineOfSight(this_, tile, target,
+                                                                       lightStrength, &rayPower))
+                                {
+                                    // Game resets tile->m_lightLevel across the board on each
+                                    // render cycle, so we don't need to worry about perma-stuck
+                                    // light tiles.
+                                    float light = rayPower / lightStrength;
+                                    if (light < target->m_lightLevel)
+                                        target->m_lightLevel = light;
+                                }
+                            }
+                        }
+                    }
+                }
+                tile->m_lightLevel = 0.0;
+            }
+        }
+        real::WorldRendererDrawTiles(this_, tiles, unk3);
+        *(float*)(((__int64)this_) + 0x15c) = original;
+    }
+};
+REGISTER_USER_GAME_PATCH(LightSourceOptimizer, lightsource_optimized);
+
+class LiveGUIRebuilder : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        // Since the PC release, if you were to toggle Touch Controls or change between fullscreen,
+        // you would get disconnected from the game to rebuild the user interface. It's a major
+        // point of annoyance and it wasn't addressed when custom windowed resolutions were released
+        // either.
+        //
+        // With this mod, we disarm the disconnect logic, in its place we will be killing the active
+        // user interface and recreating it on the fly. The game makes it somewhat easy for us, we
+        // do not really need to implement anything ourself, InitLog destroys the chat itself if it
+        // exists before creating new one, the only caveat is that it'll send whatever the player
+        // had typed out but not sent to chat. There is also KillGameMenu and GameMenuCreate
+        // functions to recreate rest of the world specific UI.
+        //
+        // We also disable using Pause Menu hotkey while Options or ResolutionMenu is open since it
+        // will mess up chat grab slider post-UI-recreation.
+        //
+        // The mod does have some issues, notably your chat and inventory scroll progress will be
+        // bit weird switching between resolutions and you do not go directly back to Options menu
+        // after changing resolution, but rather back to the game window itself.
+        //
+        // There are some other vanilla bugs present such as chat not reflowing previous
+        // conversations when changing resolutions, but that isn't the scope of this mod to fix in
+        // this stage.
+
+        auto& game = game::GameHarness::get();
+
+        // Disarm disconnect logic.
+        auto addr = game.findMemoryPattern<uint8_t*>(
+            "83 7F 58 00 74 38 F3 0F 2C ? ? ? ? ? 0F BE ? ? ? ? ? 03 C8 29 ? ? ? ? ? E8 ? ? ? ? B2 "
+            "01 48 8B 88 48 0F 00 00 E8 ? ? ? ? 48 8D ? ? ? ? ? E8 ? ? ? ? EB 3D");
+        utils::nopMemory(addr, 69);
+
+        game.hookFunctionPatternDirect<CreateOptionsMenu_t>(
+            pattern::CreateOptionsMenu, CreateOptionsMenu, &real::CreateOptionsMenu);
+        real::InitLog = game.findMemoryPattern<InitLog_t>(pattern::InitLog);
+        real::KillGameMenu = game.findMemoryPattern<KillGameMenu_t>(pattern::KillGameMenu);
+        real::GameMenuCreate = game.findMemoryPattern<GameMenuCreate_t>(pattern::GameMenuCreate);
+
+        game.hookFunctionPatternDirect<OnPressingBackDuringGameplay_t>(
+            pattern::OnPressingBackDuringGameplay, OnPressingBackDuringGameplay,
+            &real::OnPressingBackDuringGameplay);
+    }
+
+    static void __fastcall OnPressingBackDuringGameplay()
+    {
+        Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
+        if (!pGUI->GetEntityByName("OptionsMenu") && !pGUI->GetEntityByName("ResolutionMenu"))
+            real::OnPressingBackDuringGameplay();
+    }
+
+    static void __fastcall CreateOptionsMenu(VariantList* pVL)
+    {
+        if (pVL != nullptr)
+        {
+            // Same logic as the actual game - we only act if a rebuild action is done (e.g. screen
+            // res change, touch buttons) AND if it's not in main menu.
+            if (pVL->Get(0).GetUINT32() == 0)
+            {
+                if (pVL->Get(1).GetUINT32() != 0)
+                {
+                    // Kill gamemenu, rebuild chat, then recreate gamemenu and prevent options from
+                    // showing up again. If we allow options to show up again, it'll mess up the
+                    // chatgrab button position.
+                    real::KillGameMenu(false);
+                    real::InitLog();
+                    Entity* pWGUI =
+                        real::GetApp()->m_entityRoot->GetEntityByName("GUI")->GetEntityByName(
+                            "WorldSpecificGUI");
+                    Entity* pGameMenu = pWGUI->GetEntityByName("GameMenu");
+                    pWGUI->RemoveEntityByAddress(pGameMenu);
+                    real::GameMenuCreate(pWGUI);
+                    return;
+                }
+            }
+        }
+        real::CreateOptionsMenu(pVL);
+    }
+};
+REGISTER_USER_GAME_PATCH(LiveGUIRebuilder, live_gui_rebuilder);

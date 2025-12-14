@@ -5,8 +5,7 @@
 
 // We pass the original ctor here. Original ctor sets the original vtable as well.
 // When our own stuff calls ~Surface(), we pass it through as well to actual dtor.
-// We don't really need to do that for SurfaceAnim because it has no ptr types and it'll inherit
-// Surface's one.
+// We don't really need to do that for SurfaceAnim though.
 Surface::Surface() { real::SurfaceCtor(this); }
 Surface::~Surface() { real::SurfaceDtor(this); }
 

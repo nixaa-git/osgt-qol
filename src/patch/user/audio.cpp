@@ -125,7 +125,7 @@ class StartMusicSliderBackport : public patch::BasePatch
             // The blaringly loud start music comes from theme.ogg on PC (or mp3 on iOS).
             if (fName.find("/theme.ogg") != std::string::npos)
                 real::AudioManagerFMODSetMusicVol(this_,
-                                                  real::GetApp()->GetVar("start_vol")->GetFloat());
+                                                  real::GetApp()->GetVar("start_vol")->GetFloat() * real::GetApp()->GetVar("music_vol")->GetFloat());
             else
                 real::AudioManagerFMODSetMusicVol(this_,
                                                   real::GetApp()->GetVar("music_vol")->GetFloat());

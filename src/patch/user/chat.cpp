@@ -1,8 +1,10 @@
 #include "game/game.hpp"
+#include "game/signatures.hpp"
 #include "patch/patch.hpp"
 #include "utils/utils.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // CreateLogOverlay
 REGISTER_GAME_FUNCTION(CreateLogOverlay,
@@ -16,6 +18,13 @@ REGISTER_GAME_FUNCTION(TabComponentAddTabButton,
                        "EC A0 01 00 00 48 C7 45 B0 FE FF FF FF 48 89 58 20 0F 29 70 B8 0F 29 "
                        "78 A8 44 0F 29 48 98 48 8B 05 04 4A 4C 00",
                        __fastcall, __int64, void*, void*, float*, void*, void*, void*)
+
+// LogToConsoleSafe
+REGISTER_GAME_FUNCTION(
+    LogToConsoleSafe,
+    "4C 8B DC 57 48 83 EC 60 49 C7 43 B8 FE FF FF FF 49 89 5B 10 49 89 6B 18 49 89 73 20 48 8B ? ? "
+    "? ? ? 48 33 C4 48 89 44 24 50 48 8B E9 49 89 4B C0 49 C7 43 E0 0F 00 00 00",
+    __fastcall, void, std::string);
 
 // For grouping info about iPadMapX(...) calls.
 struct iPadMapXCallData
@@ -37,6 +46,8 @@ class LegacyChatPatch : public patch::BasePatch
         // Hook TabComponent::AddTabButton.
         game.hookFunctionPatternDirect(pattern::TabComponentAddTabButton, TabComponentAddTabButton,
                                        &real::TabComponentAddTabButton);
+        game.hookFunctionPatternDirect(pattern::LogToConsoleSafe, LogToConsoleSafe,
+                                       &real::LogToConsoleSafe);
 
         // Patch out various iPadMapX(...) calls.
         // These patches primarily focus on the iPadMapX call and prepending MOVSS instructions.
@@ -90,6 +101,39 @@ class LegacyChatPatch : public patch::BasePatch
         real::CreateLogOverlay(pos2d, size2d, unk3);
     }
 
+    static void __fastcall LogToConsoleSafe(std::string text)
+    {
+        // Re-implement pre-chat update LogToConsoleSafe function.
+        // LogDisplay Component is located in Root -> ConsoleLogParent -> LogRectBG -> LogScroller
+        // -> scroll_child -> LogDisplayEntity -> LogDisplay
+        // nit: This is technically more performant than original since our Entity funct doesn't do
+        // recursive search, but this is ugly at the same time.
+        Entity* pEntityRoot = real::GetApp()->m_entityRoot;
+        Entity* pLogParent = pEntityRoot->GetEntityByName("ConsoleLogParent");
+        if (pLogParent == nullptr)
+            return;
+        Entity* pLogRectBG = pLogParent->GetEntityByName("LogRectBG");
+        if (pLogRectBG == nullptr)
+            return;
+        Entity* pLogScroller = pLogRectBG->GetEntityByName("LogScroller");
+        if (pLogScroller == nullptr)
+            return;
+        Entity* pScrollChild = pLogScroller->GetEntityByName("scroll_child");
+        if (pScrollChild == nullptr)
+            return;
+        Entity* pLogDisplayEnt = pScrollChild->GetEntityByName("LogDisplayEntity");
+        if (pLogDisplayEnt == nullptr)
+            return;
+        EntityComponent* pLogDisplayComp = pLogDisplayEnt->GetComponentByName("LogDisplay");
+        if (pLogDisplayComp == nullptr)
+            return;
+        // todo: Replace CT:[W]_ stuff.
+        std::string line = "`o" + text + "``";
+        VariantList vl;
+        vl.Get(0).Set(line);
+        pLogDisplayComp->GetShared()->CallFunctionIfExists("AddLine", &vl);
+    }
+
     static __int64 __fastcall TabComponentAddTabButton(void* this_, void* entity, float* xCoord,
                                                        void* unk4, void* unk5, void* unk6)
     {
@@ -116,3 +160,33 @@ class NoGuildIconPatch : public patch::BasePatch
     }
 };
 REGISTER_USER_GAME_PATCH(NoGuildIconPatch, no_guild_icon);
+
+class ChatLimitExtended : public patch::BasePatch
+{
+    void apply() const override
+    {
+        Variant* pVariant = real::GetApp()->GetVar("osgt_qol_extend_console");
+        if (pVariant->GetType() != Variant::TYPE_UINT32)
+            pVariant->Set(uint32_t(1));
+
+        auto& optionsMgr = game::OptionsManager::get();
+        optionsMgr.addCheckboxOption("osgt_qol_extend_console", "Extend chat history limit to 500",
+                                     &OnChatLimitCallback);
+        SetConsoleLogLimit();
+    }
+
+    static void OnChatLimitCallback(VariantList* pVariant)
+    {
+        Entity* pCheckbox = pVariant->Get(1).GetEntity();
+        bool bChecked = pCheckbox->GetVar("checked")->GetUINT32() != 0;
+        real::GetApp()->GetVar("osgt_qol_extend_console")->Set(uint32_t(bChecked));
+        SetConsoleLogLimit();
+    }
+
+    static void SetConsoleLogLimit()
+    {
+        real::GetApp()->m_logConsole.m_maxLines =
+            real::GetApp()->GetVar("osgt_qol_extend_console")->GetUINT32() == 1 ? 500 : 125;
+    }
+};
+REGISTER_USER_GAME_PATCH(ChatLimitExtended, chat_limit_extended);

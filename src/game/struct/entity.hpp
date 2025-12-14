@@ -19,13 +19,20 @@ class Entity : public boost::signals::trackable
         RemoveAllComponents();
     }
 
-    void SetName(std::string name);
+    void SetName(std::string name) { m_name = name; }
     std::string GetName() { return m_name; }
 
     Entity* AddEntity(Entity* pEntity)
     {
         pEntity->SetParent(this);
         m_children.push_back(pEntity);
+        return pEntity;
+    }
+
+    Entity* AddEntityToFront(Entity* pEntity)
+    {
+        pEntity->SetParent(this);
+        m_children.push_front(pEntity);
         return pEntity;
     }
 

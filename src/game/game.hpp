@@ -51,6 +51,9 @@ class GameHarness
     // Toggles the loading screen
     void toggleLoadScreen();
 
+    // Resizes the loading screen
+    void resizeLoadScreen();
+
     // Search game memory for a specific byte pattern. Returns a pointer to the first occurrence.
     // Throws std::invalid_argument on invalid pattern or std::runtime_error if failed to find.
     template <typename T = void*> T findMemoryPattern(const std::string& pattern);
@@ -72,6 +75,13 @@ class GameHarness
 
     // Changes the game window title to the specified string.
     void setWindowTitle(const std::string& title);
+
+    HWND getWindowHandle() const
+    {
+        return window;
+    }
+
+    void updateWindowHandle();
 
     // Sets the game window visibility.
     inline void setWindowVisible(bool visible) const
@@ -343,6 +353,6 @@ void game::GameHarness::hookFunctionPatternCall(const std::string& pattern, F de
         throw std::runtime_error("Failed to find pattern '" + pattern + "'.");
     auto call = utils::resolveRelativeCall<F>(addr);
     if (call == nullptr)
-        throw std::runtime_error("Failed to resolve call at " + std::to_string((uintptr_t*)addr));
+        throw std::runtime_error("Failed to resolve call");
     hookFunction<F>(call, detour, original);
 }

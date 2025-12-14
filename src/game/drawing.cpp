@@ -119,6 +119,8 @@ REGISTER_GAME_FUNCTION(
     "48 8B C4 55 57 41 54 41 56 41 57 48 8D A8 E8 F8 FF FF 48 81 EC F0 07 00 00 48 C7 85 80 01",
     __fastcall, void, Entity*, bool);
 
+REGISTER_GAME_FUNCTION(SetupEntityIconFromItem, "48 8B C4 55 57 41 56 48 8D 68 A9 48 81 EC A0 00 00 00 48 C7 45 0F FE FF FF FF 48 89 58 18 48 89 70 20 48 8B ? ? ? ? ? 48 33 C4 48 89 45 37", __fastcall, Entity*, int* ItemID, Entity* ParentEntity, Vec2f* Position, int, bool bDrawBorder);
+
 namespace game
 {
 void GameHarness::resolveRenderSigs()
@@ -138,6 +140,7 @@ void GameHarness::resolveRenderSigs()
     real::AddBMPRectAroundEntity =
         findMemoryPattern<AddBMPRectAroundEntity_t>(pattern::AddBMPRectAroundEntity);
     real::FadeInEntity = findMemoryPattern<FadeInEntity_t>(pattern::FadeInEntity);
+    real::SetupEntityIconFromItem = findMemoryPattern<SetupEntityIconFromItem_t>(pattern::SetupEntityIconFromItem);
 }
 
 static uint8_t loadScreenState = 0;

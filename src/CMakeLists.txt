@@ -8,6 +8,8 @@ set (SOURCES
     game/options.cpp
     game/weathermanager.cpp
     game/struct/entityutils.cpp
+    game/struct/miscutils.cpp
+    game/struct/renderutils.cpp
     game/struct/components/gamelogic.cpp
     game/struct/graphics/background.cpp
     game/struct/graphics/background_blank.cpp
@@ -26,8 +28,10 @@ set (SOURCES_USER_PATCHES
     patch/user/items.cpp
     patch/user/net.cpp
     patch/user/render.cpp
+    patch/user/playmodoverlay.cpp
 )
 set (SOURCES_CORE_PATCHES
+    patch/core/config.cpp
     patch/core/about.cpp
     patch/core/integrity.cpp
 )

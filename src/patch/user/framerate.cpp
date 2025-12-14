@@ -41,9 +41,22 @@ class FramerateUnlockPatch : public patch::BasePatch
             }
         }
 
+        auto& optionsMgr = game::OptionsManager::get();
+                optionsMgr.addCheckboxOption(
+                    "osgt_qol_fps_temp_killswitch", "Limit FPS back down to 60 (Power Saving)\n",
+                    &OnFPSPowerSaveCallback);
+
         // Fix crazy pet movement.
         game.hookFunctionPatternDirect<PetRenderDataUpdate_t>(
             pattern::PetRenderDataUpdate, PetRenderDataUpdate, &real::PetRenderDataUpdate);
+    }
+
+    static void OnFPSPowerSaveCallback(VariantList* pVariant)
+    {
+        Entity* pCheckbox = pVariant->Get(1).GetEntity();
+        bool bChecked = pCheckbox->GetVar("checked")->GetUINT32() != 0;
+        real::GetApp()->GetVar("osgt_qol_fps_temp_killswitch")->Set(uint32_t(bChecked));
+        SetFPSLimit(nullptr, 60.0f);
     }
 
     static void OnFPSMinimumCallback(VariantList* pVariant)
@@ -60,7 +73,7 @@ class FramerateUnlockPatch : public patch::BasePatch
         // to 60.
         DEVMODE dm;
         dm.dmSize = sizeof(DEVMODE);
-        if (EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &dm))
+        if (EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &dm) && !real::GetApp()->GetVar("osgt_qol_fps_temp_killswitch")->GetUINT32())
         {
             float fpsLimit = static_cast<float>(dm.dmDisplayFrequency);
             // Do not allow over >400fps. The client has a bug where if the game is open for long

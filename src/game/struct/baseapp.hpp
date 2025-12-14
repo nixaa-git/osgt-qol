@@ -8,6 +8,22 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+
+class Console
+{
+public:
+	Console();
+	virtual ~Console() {};
+	void SetMaxLines(unsigned int num) {m_maxLines = num;}
+
+	boost::signal<void()> m_sig_on_text_added;
+
+	unsigned int m_maxLines;
+	std::deque<std::string> m_log;
+  uint8_t padding[76];
+};
+static_assert(sizeof(Console) == 176, "Console class size mismatch. ");
+
 // Expected size: 2920 bytes
 class BaseApp
 {
@@ -51,7 +67,7 @@ class BaseApp
     bool m_bFPSVisible;
     bool m_bInitted;
     GameTimer m_gameTimer;
-    uint8_t m_console[176];
+    Console m_console;
     RTFont m_fontArray[4];
     uint8_t m_OSMessages[40];     // A deque with <OSMessage>
     bool m_bManualRotation;
