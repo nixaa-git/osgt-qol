@@ -36,14 +36,14 @@ class FramerateUnlockPatch : public patch::BasePatch
             {
                 auto& optionsMgr = game::OptionsManager::get();
                 optionsMgr.addCheckboxOption(
-                    "osgt_qol_fps_min90", "Set FPS Limit minimum value to 90 (may get V-Synced)\n",
+                    "qol", "Performance", "osgt_qol_fps_min90", "Set FPS Limit minimum value to 90 (may get V-Synced)\n",
                     &OnFPSMinimumCallback);
             }
         }
 
         auto& optionsMgr = game::OptionsManager::get();
                 optionsMgr.addCheckboxOption(
-                    "osgt_qol_fps_temp_killswitch", "Limit FPS back down to 60 (Power Saving)\n",
+                    "qol", "Performance", "osgt_qol_fps_temp_killswitch", "Limit FPS back down to 60 (Power Saving)\n",
                     &OnFPSPowerSaveCallback);
 
         // Fix crazy pet movement.

@@ -31,6 +31,7 @@ void setup()
         game.toggleLoadScreen();
         game.resolveRenderSigs();
         optionsMgr.initialize();
+        optionsMgr.addOptionPage("qol", "OSGT-QOL Settings");
         input.initialize();
         itemAPI.initialize();
         weatherMgr.initialize();

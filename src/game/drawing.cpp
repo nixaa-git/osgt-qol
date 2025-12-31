@@ -13,7 +13,7 @@ REGISTER_GAME_FUNCTION(GetApp, "44 0F 28 F8 E8 ? ? ? ? 48 8B C8 48 8D", __fastca
 // DrawFilledRect
 REGISTER_GAME_FUNCTION(DrawFilledRect,
                        "48 83 EC 58 F3 41 0F 10 01 48 8D 44 24 40 F3 41 0F 10 49 04 0F", __fastcall,
-                       void, const Rectf& rect, uint32_t rgba, float unk3, Vec2f* unk4);
+                       void, const Rectf& rect, uint32_t rgba, float unk3, CL_Vec2f* unk4);
 
 // GetScreenRect
 REGISTER_GAME_FUNCTION(GetScreenRect,
@@ -105,7 +105,8 @@ REGISTER_GAME_FUNCTION(EntitySetScaleBySize,
 REGISTER_GAME_FUNCTION(
     AddBMPRectAroundEntity,
     "48 8B C4 55 56 57 41 56 41 57 48 8D 68 98 48 81 EC 40 01 00 00 48 C7 44 24 68 FE FF FF FF",
-    __fastcall, void, Entity* pEnt, uint32_t col1, uint32_t col2, float padding);
+    __fastcall, void, Entity* pEnt, uint32_t col1, uint32_t col2, float padding, bool bUnk,
+    float fontScale, uint32_t fontID, bool bUnk4);
 
 // FadeInEntity
 REGISTER_GAME_FUNCTION(FadeInEntity,
@@ -119,7 +120,11 @@ REGISTER_GAME_FUNCTION(
     "48 8B C4 55 57 41 54 41 56 41 57 48 8D A8 E8 F8 FF FF 48 81 EC F0 07 00 00 48 C7 85 80 01",
     __fastcall, void, Entity*, bool);
 
-REGISTER_GAME_FUNCTION(SetupEntityIconFromItem, "48 8B C4 55 57 41 56 48 8D 68 A9 48 81 EC A0 00 00 00 48 C7 45 0F FE FF FF FF 48 89 58 18 48 89 70 20 48 8B ? ? ? ? ? 48 33 C4 48 89 45 37", __fastcall, Entity*, int* ItemID, Entity* ParentEntity, Vec2f* Position, int, bool bDrawBorder);
+REGISTER_GAME_FUNCTION(SetupEntityIconFromItem,
+                       "48 8B C4 55 57 41 56 48 8D 68 A9 48 81 EC A0 00 00 00 48 C7 45 0F FE FF FF "
+                       "FF 48 89 58 18 48 89 70 20 48 8B ? ? ? ? ? 48 33 C4 48 89 45 37",
+                       __fastcall, Entity*, int* ItemID, Entity* ParentEntity, CL_Vec2f* Position,
+                       int, bool bDrawBorder);
 
 namespace game
 {
@@ -140,7 +145,8 @@ void GameHarness::resolveRenderSigs()
     real::AddBMPRectAroundEntity =
         findMemoryPattern<AddBMPRectAroundEntity_t>(pattern::AddBMPRectAroundEntity);
     real::FadeInEntity = findMemoryPattern<FadeInEntity_t>(pattern::FadeInEntity);
-    real::SetupEntityIconFromItem = findMemoryPattern<SetupEntityIconFromItem_t>(pattern::SetupEntityIconFromItem);
+    real::SetupEntityIconFromItem =
+        findMemoryPattern<SetupEntityIconFromItem_t>(pattern::SetupEntityIconFromItem);
 }
 
 static uint8_t loadScreenState = 0;

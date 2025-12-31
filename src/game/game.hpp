@@ -1,8 +1,10 @@
 #pragma once
 #include "game/struct/graphics/background.hpp"
 #include "game/struct/variant.hpp"
+#include <map>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -76,10 +78,7 @@ class GameHarness
     // Changes the game window title to the specified string.
     void setWindowTitle(const std::string& title);
 
-    HWND getWindowHandle() const
-    {
-        return window;
-    }
+    HWND getWindowHandle() const { return window; }
 
     void updateWindowHandle();
 
@@ -132,6 +131,11 @@ class OptionsManager
         float vModSizeX = 0;
         void* signal;
     };
+    struct OptionsPage
+    {
+        std::string fancyName;
+        std::map<std::string, std::vector<GameOption>> sections;
+    };
     // Get OptionsManager instance
     static OptionsManager& get();
 
@@ -140,6 +144,12 @@ class OptionsManager
     // This will resolve and hook all the functions needed to provide an API for patches to create
     // their own options with.
     void initialize();
+
+    // Creates an option page with fancy name
+    void addOptionPage(std::string ID, std::string displayName)
+    {
+        optionPages[ID].fancyName = displayName;
+    }
 
     // Adds a slider option to end of GameOptions list.
     // varName is points to a variable in save.dat.
@@ -151,7 +161,26 @@ class OptionsManager
         option.varName = varName;
         option.displayName = displayName;
         option.signal = (void*)pCallback;
-        options.push_back(option);
+        rootOptions.push_back(option);
+    }
+
+    void addSliderOption(std::string page, std::string section, std::string varName,
+                         std::string displayName, VariantCallback pCallback)
+    {
+#ifdef DEBUG
+        if (optionPages.find(page) == optionPages.end())
+        {
+            printf("[WARN] Added a slider option to page %s on section %s, but page doesn't exist. "
+                   "Using the ID as name.\n",
+                   page, section);
+        }
+#endif
+        GameOption option;
+        option.type = OPTION_SLIDER;
+        option.varName = varName;
+        option.displayName = displayName;
+        option.signal = (void*)pCallback;
+        optionPages[page].sections[section].push_back(option);
     }
 
     // Adds a checkbox option to end of GameOptions list.
@@ -165,7 +194,25 @@ class OptionsManager
         option.varName = varName;
         option.displayName = displayName;
         option.signal = (void*)pCallback;
-        options.push_back(option);
+        rootOptions.push_back(option);
+    }
+    void addCheckboxOption(std::string page, std::string section, std::string varName,
+                           std::string displayName, VariantListCallback pCallback)
+    {
+#ifdef DEBUG
+        if (optionPages.find(page) == optionPages.end())
+        {
+            printf("[WARN] Added a slider option to page %s on section %s, but page doesn't exist. "
+                   "Using the ID as name.\n",
+                   page, section);
+        }
+#endif
+        GameOption option;
+        option.type = OPTION_CHECKBOX;
+        option.varName = varName;
+        option.displayName = displayName;
+        option.signal = (void*)pCallback;
+        optionPages[page].sections[section].push_back(option);
     }
 
     // Adds a multi-choice option to end of GameOptions list.
@@ -187,11 +234,42 @@ class OptionsManager
         option.displayOptions = &displayOptions;
         option.signal = (void*)pCallback;
         option.vModSizeX = vModSizeX;
-        options.push_back(option);
+        rootOptions.push_back(option);
+    }
+    void addMultiChoiceOption(std::string page, std::string section, std::string varName,
+                              std::string displayName, std::vector<std::string>& displayOptions,
+                              VariantListCallback pCallback, float vModSizeX = 0)
+    {
+#ifdef DEBUG
+        if (optionPages.find(page) == optionPages.end())
+        {
+            printf("[WARN] Added a slider option to page %s on section %s, but page doesn't exist. "
+                   "Using the ID as name.\n",
+                   page, section);
+        }
+        else
+        {
+            if (optionPages[page].sections.find(section) == optionPages[page].sections.end())
+            {
+                printf("[WARN] Added a slider option to page %s on section %s, but section doesn't "
+                       "exist. Using the ID as name.\n",
+                       page, section);
+            }
+        }
+#endif
+        GameOption option;
+        option.type = OPTION_MULTICHOICE;
+        option.varName = varName;
+        option.displayName = displayName;
+        option.displayOptions = &displayOptions;
+        option.signal = (void*)pCallback;
+        option.vModSizeX = vModSizeX;
+        optionPages[page].sections[section].push_back(option);
     }
 
     // All of the custom options we have made are stored here.
-    std::vector<GameOption> options;
+    std::vector<GameOption> rootOptions;
+    std::map<std::string, OptionsPage> optionPages;
 
   private:
     // Helper functions called during the hook to render our options.
@@ -201,6 +279,7 @@ class OptionsManager
                                float& vPosY);
     static void renderMultiChoice(OptionsManager::GameOption& optionDef, void* pEntPtr, float vPosX,
                                   float& vPosY);
+    static void HandleOptionPageButton(VariantList* pVL);
 
     // Fastcalls used in hooks
     static void __fastcall OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, void* unk4);

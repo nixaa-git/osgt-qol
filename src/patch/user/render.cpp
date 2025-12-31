@@ -104,13 +104,6 @@ REGISTER_GAME_FUNCTION(DrawFilledBitmapRect,
                        "48 83 EC 48 66 0F 6E 01 66 0F 6E 49 04 0F B6 44 24 70", __fastcall, void,
                        rtRectf&, uint32_t, uint32_t, void*, bool);
 
-// TouchHandlerComponent
-REGISTER_GAME_FUNCTION(
-    TouchHandlerComponent,
-    "48 89 4C 24 08 53 48 83 EC 50 48 C7 44 24 20 FE FF FF FF 48 8B D9 E8 ? ? ? ? 90 48 8D ? ? ? ? "
-    "? 48 89 03 33 C9 48 89 8B 10 01 00 00 48 89 8B 08 01 00 00 48 C7 44 24 40 0F",
-    __fastcall, EntityComponent*, void*);
-
 REGISTER_GAME_FUNCTION(AvatarDataGetSetAsUint16,
                        "0F 10 41 0C 0F 11 02 0F B7 41 1C 66 89 42 10 F3 0F 10 ? ? ? ? ? F3 0F 58 ? "
                        "? ? ? ? F3 0F 11 ? ? ? ? ? C3",
@@ -197,8 +190,8 @@ class CustomizedTitleScreen : public patch::BasePatch
         }
         weatherMgr.m_sig_eventSubscribe.connect(&customWeatherEvent);
         // Register the Multi-Choice option
-        optionsMgr.addMultiChoiceOption("osgt_qol_title_bg", "Title Background", displayNames,
-                                        &TitleBackgroundOnSelect, 80.0f);
+        optionsMgr.addMultiChoiceOption("qol", "UI", "osgt_qol_title_bg", "Title Background",
+                                        displayNames, &TitleBackgroundOnSelect, 80.0f);
     }
 
     static void customWeatherEvent(game::WeatherManager::CustomWeatherEvent* pCustomWeather)
@@ -444,7 +437,7 @@ class BubbleOpacityBackport : public patch::BasePatch
         // it'd be too messy to ram it between them. OptionsManager will move it to dedicated
         // "OSGT-QOL Options" area.
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addSliderOption("speech_bubble_opacity", "Bubble Opacity",
+        optionsMgr.addSliderOption("qol", "UI", "speech_bubble_opacity", "Bubble Opacity",
                                    &BubbleOpacitySliderCallback);
 
         // Hook
@@ -479,9 +472,6 @@ class HideMyUI : public patch::BasePatch
         // instead.
         auto& game = game::GameHarness::get();
 
-        real::TouchHandlerComponent =
-            game.findMemoryPattern<TouchHandlerComponent_t>(pattern::TouchHandlerComponent);
-
         auto& inputEvents = game::InputEvents::get();
         AddCustomKeybinds();
         inputEvents.m_sig_onArcadeInput.connect(&OnArcadeInput);
@@ -493,9 +483,9 @@ class HideMyUI : public patch::BasePatch
             pVariant->Set(0.33f);
 
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addSliderOption("hide_ui_opacity", "Hide UI Opacity",
+        optionsMgr.addSliderOption("qol", "UI", "hide_ui_opacity", "Hide UI Opacity",
                                    &HideUIOpacitySliderCallback);
-        optionsMgr.addCheckboxOption("hide_ui_scrollers", "Hide slider handles too",
+        optionsMgr.addCheckboxOption("qol", "UI", "hide_ui_scrollers", "Hide slider handles too",
                                      &HideUIScrollHandlesCallback);
     }
 
@@ -571,7 +561,7 @@ class HideMyUI : public patch::BasePatch
                 return;
 
             Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
-            if (pGUI->GetEntityByName("OptionsMenu"))
+            if (pGUI->GetEntityByName("OptionsMenu") || pGUI->GetEntityByName("OptionsPage"))
                 return;
             // GUI -> WorldSpecificGUI always exists. GameMenu only does when in a world.
             Entity* pMenu = pGUI->GetEntityByName("WorldSpecificGUI")->GetEntityByName("GameMenu");
@@ -736,9 +726,9 @@ class LightSourceOptimizer : public patch::BasePatch
             g_bLightSourcesOptimized = pVariant->GetUINT32() == 1;
 
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addCheckboxOption("osgt_qol_lightopt_enabled", "Optimize Light Emitters",
-                                     &LightOptimizerToggle);
-        optionsMgr.addSliderOption("osgt_qol_lightopt_rad",
+        optionsMgr.addCheckboxOption("qol", "Performance", "osgt_qol_lightopt_enabled",
+                                     "Optimize Light Emitters", &LightOptimizerToggle);
+        optionsMgr.addSliderOption("qol", "Performance", "osgt_qol_lightopt_rad",
                                    "Light Emitter Strength `a(See more at expense of fps)``",
                                    &LightOptimizerSlider);
     }
@@ -910,7 +900,7 @@ class LiveGUIRebuilder : public patch::BasePatch
     static void __fastcall OnPressingBackDuringGameplay()
     {
         Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
-        if (!pGUI->GetEntityByName("OptionsMenu") && !pGUI->GetEntityByName("ResolutionMenu"))
+        if (!pGUI->GetEntityByName("OptionsMenu") && !pGUI->GetEntityByName("ResolutionMenu") && !pGUI->GetEntityByName("OptionsPage"))
             real::OnPressingBackDuringGameplay();
     }
 

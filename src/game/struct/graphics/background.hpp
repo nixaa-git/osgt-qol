@@ -11,11 +11,11 @@ class Background : public boost::signals::trackable
     Background();
     virtual ~Background();
 
-    virtual void Render(Vec2f& vScreenPos, float graphicDetail);
+    virtual void Render(CL_Vec2f& vScreenPos, float graphicDetail);
     virtual void Init(bool);
     virtual void Update();
-    virtual void RenderForeground(Vec2f&, float);
-    virtual void SetScale(Vec2f&);
+    virtual void RenderForeground(CL_Vec2f&, float);
+    virtual void SetScale(CL_Vec2f&);
     virtual void UpdateSFXVolume(float vol);
 
     void OnEnterForeground(VariantList*);
@@ -31,8 +31,8 @@ class Background : public boost::signals::trackable
     float m_fadeProgress = 1.0f;
 
     // These two are primarily used in parallax scrolling
-    Vec2f m_screenSize;
-    Vec2f m_scale = Vec2f(1.0f, 1.0f);
+    CL_Vec2f m_screenSize;
+    CL_Vec2f m_scale = CL_Vec2f(1.0f, 1.0f);
 
     Rectf m_renderRect;
     LoopingSound m_loopingSound;

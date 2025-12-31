@@ -6,10 +6,10 @@ Background_Blank::Background_Blank() {}
 
 Background_Blank::~Background_Blank() {}
 
-void Background_Blank::Render(Vec2f& vScreenPos, float graphicDetail)
+void Background_Blank::Render(CL_Vec2f& vScreenPos, float graphicDetail)
 {
     // Need to find out what this vec is for. Looks like it's related to some bgfx rotation matrix?
-    Vec2f unk4(0.0, 0.0);
+    CL_Vec2f unk4(0.0, 0.0);
     // Get our screen size
     Rectf screenRect;
     real::GetScreenRect(screenRect);

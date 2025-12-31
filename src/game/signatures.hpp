@@ -29,11 +29,12 @@ DEFINE_GAME_FUNCTION(iPadMapX, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPadMapY, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPhoneMapX, __fastcall, float, float);
 DEFINE_GAME_FUNCTION(iPhoneMapY, __fastcall, float, float);
-
+DEFINE_GAME_FUNCTION(SlideScreen, __fastcall, void, Entity*, bool, int, int);
+DEFINE_GAME_FUNCTION(TouchHandlerComponent, __fastcall, EntityComponent*, void*);
 // Declared in drawing.cpp
 DEFINE_GAME_FUNCTION(GetApp, __fastcall, App*);
 DEFINE_GAME_FUNCTION(DrawFilledRect, __fastcall, void, const Rectf& rect, uint32_t rgba, float unk3,
-                     Vec2f* unk4);
+                     CL_Vec2f* unk4);
 DEFINE_GAME_FUNCTION(GetScreenRect, __fastcall, void, Rectf&);
 DEFINE_GAME_FUNCTION(SurfaceCtor, __thiscall, void*, void*);
 DEFINE_GAME_FUNCTION(SurfaceDtor, __thiscall, void, void*);
@@ -54,12 +55,15 @@ DEFINE_GAME_FUNCTION(SetupTextEntity, __fastcall, void, Entity*, uint32_t eFontI
 DEFINE_GAME_FUNCTION(GetFontAndScaleToFitThisLinesPerScreenY, __fastcall, void, uint32_t& fontID,
                      float& fontScale, float lines);
 DEFINE_GAME_FUNCTION(AddBMPRectAroundEntity, __fastcall, void, Entity* pEnt, uint32_t col1,
-                     uint32_t col2, float padding);
+                     uint32_t col2, float padding, bool bUnk, float fontScale, uint32_t fontID, bool bUnk4);
 DEFINE_GAME_FUNCTION(FadeInEntity, __fastcall, void, Entity* pEnt, bool bRecursive, int timeMS,
                      int delayMS, float fadeTarget, int timing);
 DEFINE_GAME_FUNCTION(MainMenuCreate, __fastcall, void, Entity*, bool);
-DEFINE_GAME_FUNCTION(SetupEntityIconFromItem, __fastcall, Entity*, int* ItemID, Entity* ParentEntity, Vec2f* Position, int, bool bDrawBorder);
-
+DEFINE_GAME_FUNCTION(SetupEntityIconFromItem, __fastcall, Entity*, int* ItemID,
+                     Entity* ParentEntity, CL_Vec2f* Position, int, bool bDrawBorder);
+DEFINE_GAME_FUNCTION(CreateOverlayEntity, __fastcall, Entity*, Entity* pParentEnt,
+                     const std::string name, const std::string fileName, float x, float y);
+DEFINE_GAME_FUNCTION(EntitySetScaleBySize, __fastcall, void, Entity*, CL_Vec2f&, bool, bool);
 // Declared in input.cpp
 DEFINE_GAME_FUNCTION(GetArcadeComponent, __fastcall, EntityComponent*);
 DEFINE_GAME_FUNCTION(AddKeyBinding, __fastcall, void, EntityComponent* pComp, std::string name,

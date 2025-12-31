@@ -83,7 +83,7 @@ class StartMusicSliderBackport : public patch::BasePatch
             pVariant->Set(1.0f);
 
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addSliderOption("start_vol", "Start Music", &StartVolumeSliderCallback);
+        optionsMgr.addSliderOption("qol", "Audio", "start_vol", "Start Music", &StartVolumeSliderCallback);
 
         // Hook.
         game.hookFunctionPatternDirect(pattern::AudioManagerFMODPlay, AudioManagerFMODPlay,

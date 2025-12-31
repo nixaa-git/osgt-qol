@@ -142,7 +142,7 @@ class PlaymodTimersOverlay : public patch::BasePatch
         Entity* pOverlayEnt = pWorldSpecificGUI->GetEntityByName("TimerOverlay");
         if (!pOverlayEnt)
             return;
-        pOverlayEnt->GetVar("pos2d")->Set(Vec2f(16, yLevel));
+        pOverlayEnt->GetVar("pos2d")->Set(CL_Vec2f(16, yLevel));
         g_lastOverlayHeight = yLevel;
     }
 
@@ -280,7 +280,7 @@ class PlaymodTimersOverlay : public patch::BasePatch
         Entity* pOverlayEnt = pWorldSpecificGUI->AddEntityToFront(new Entity("TimerOverlay"));
         pOverlayEnt->GetVar("pos2d")->Set(CL_Vec2f(16, g_lastOverlayHeight));
 
-        Vec2f Bounds(0, 0);
+        CL_Vec2f Bounds(0, 0);
         // std::sort(g_activeMods.begin(), g_activeMods.end());
         for (auto mod : g_activeMods)
         {
@@ -340,13 +340,13 @@ class PlaymodTimersOverlay : public patch::BasePatch
         ConstructOverlay();
     }
 
-    static PlaymodTimerEntity* CreateTicker(int ItemID, Entity* ParentEnt, Vec2f& bounds)
+    static PlaymodTimerEntity* CreateTicker(int ItemID, Entity* ParentEnt, CL_Vec2f& bounds)
     {
         // "Ticker" is a PlaymodTimerEntity which contains the playmod icon and the timer text.
         PlaymodTimerEntity* pTimerEnt = new PlaymodTimerEntity();
         pTimerEnt->GetVar("pos2d")->Set(bounds);
         ParentEnt->AddEntity(pTimerEnt);
-        Vec2f IconBounds(0, 0);
+        CL_Vec2f IconBounds(0, 0);
         Entity* pIcon = DrawIcon(ItemID, pTimerEnt, IconBounds);
         Entity* pTextLabel = real::CreateTextLabelEntity(pTimerEnt, "txt", 42.0f, 0, "0:00");
         SetTextShadowColor(pTextLabel, 150);
@@ -392,7 +392,7 @@ class PlaymodTimersOverlay : public patch::BasePatch
                 it++;
         }
         // We use the bound for repositioning and also activating rendering of delayed timers.
-        Vec2f Bounds(0, 0);
+        CL_Vec2f Bounds(0, 0);
         if (bReorder)
         {
             for (auto ent : pTimerEnts)
@@ -425,7 +425,7 @@ class PlaymodTimersOverlay : public patch::BasePatch
         return;
     }
 
-    static Entity* DrawIcon(int ItemID, Entity* ParentEnt, Vec2f& bounds)
+    static Entity* DrawIcon(int ItemID, Entity* ParentEnt, CL_Vec2f& bounds)
     {
         if (ItemID == 0)
             ItemID = 1;

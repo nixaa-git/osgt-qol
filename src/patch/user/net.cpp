@@ -48,11 +48,6 @@ REGISTER_GAME_FUNCTION(CreateInputTextEntity, "48 8B C4 55 41 54 41 55 41 56 41 
                        __fastcall, Entity*, Entity*, std::string, float, float, std::string, float,
                        float, std::string, std::string, std::string);
 
-// SlideScreen
-// Params: Target Entity, bool (Slide in or out), Transition Time (MS), DelayMS
-REGISTER_GAME_FUNCTION(SlideScreen, "48 8B C4 55 56 57 41 54 41 55 41 56 41 57 48 8D 68 98 48 81",
-                       __fastcall, void, Entity*, bool, int, int);
-
 // GetAppCachePath
 // Returns: Game directory string
 REGISTER_GAME_FUNCTION(GetAppCachePath, "40 53 48 83 EC 30 33 C0 48 C7 41 18 0F 00 00 00 48",
@@ -79,7 +74,6 @@ class ServerSwitcher : public patch::BasePatch
         // Resolve UI functions - we will need these to properly construct our UI in OnlineMenu
         real::CreateInputTextEntity =
             game.findMemoryPattern<CreateInputTextEntity_t>(pattern::CreateInputTextEntity);
-        real::SlideScreen = game.findMemoryPattern<SlideScreen_t>(pattern::SlideScreen);
 
         // We want to also inform the user which server they are using.
         real::LogToConsole = game.findMemoryPattern<LogToConsole_t>(pattern::LogToConsole);

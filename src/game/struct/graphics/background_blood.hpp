@@ -11,11 +11,11 @@ class Background_Blood : public Background
     Background_Blood();
     virtual ~Background_Blood();
 
-    virtual void Render(Vec2f& screenSize, float graphicDetail);
+    virtual void Render(CL_Vec2f& screenSize, float graphicDetail);
     virtual void Init(bool);
     virtual void Update();
 
-    void DrawHill(int hillLevel, Vec2f bounds);
+    void DrawHill(int hillLevel, CL_Vec2f bounds);
 
     Background_Clouds* m_pBGClouds = nullptr;
     SurfaceAnim m_surf_moon;

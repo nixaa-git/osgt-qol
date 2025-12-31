@@ -8,5 +8,5 @@ class Background_Blank : public Background
     Background_Blank();
     virtual ~Background_Blank();
 
-    virtual void Render(Vec2f& screenSize, float graphicDetail);
+    virtual void Render(CL_Vec2f& screenSize, float graphicDetail);
 };

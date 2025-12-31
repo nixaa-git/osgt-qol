@@ -170,7 +170,7 @@ class ChatLimitExtended : public patch::BasePatch
             pVariant->Set(uint32_t(1));
 
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addCheckboxOption("osgt_qol_extend_console", "Extend chat history limit to 500",
+        optionsMgr.addCheckboxOption("qol", "UI", "osgt_qol_extend_console", "Extend chat history limit to 500",
                                      &OnChatLimitCallback);
         SetConsoleLogLimit();
     }

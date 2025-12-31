@@ -39,10 +39,10 @@ Background_Default::~Background_Default()
     delete[] m_surfArray;
 }
 
-void Background_Default::Render(Vec2f& vScreenPos, float graphicDetail)
+void Background_Default::Render(CL_Vec2f& vScreenPos, float graphicDetail)
 {
     // Need to find out what this vec is for. Looks like it's related to some bgfx rotation matrix?
-    Vec2f unk4(0.0, 0.0);
+    CL_Vec2f unk4(0.0, 0.0);
     unsigned int skyColour = MAKE_RGBA(96, 215, 242, 255);
     if (m_bIsSpring)
         skyColour = MAKE_RGBA(36, 130, 242, 255);
@@ -54,7 +54,7 @@ void Background_Default::Render(Vec2f& vScreenPos, float graphicDetail)
     if (graphicDetail > 0.1)
     {
         // Draw all the "high detail" assets, e.g. sun/hills/clouds.
-        Vec2f sunScale = Vec2f((m_screenSize.x / 161.0f) / 6.0f);
+        CL_Vec2f sunScale = CL_Vec2f((m_screenSize.x / 161.0f) / 6.0f);
         m_surf_sun.BlitScaledAnim(m_screenSize.x * 0.7f, m_screenSize.y * 0.1f, 0, 0, &sunScale, 0);
         // Draw clouds piecemeal e.g. 0-20%, 20-40% to be between hill layers.
         m_pBGClouds->Render(vScreenPos, graphicDetail, 0.0f, 0.2f);
@@ -92,7 +92,7 @@ void Background_Default::Init(bool bInWorld)
 
 void Background_Default::Update() { m_pBGClouds->Update(); }
 
-void Background_Default::DrawHill(int hillLevel, Vec2f bounds)
+void Background_Default::DrawHill(int hillLevel, CL_Vec2f bounds)
 {
     // Scale proportional to the user's screen width
     float hillScale = m_screenSize.x / 512.0f;
