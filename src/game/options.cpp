@@ -476,8 +476,10 @@ void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, v
         }
     }
 
-    // Use final element of the menu for anchoring our elements to.
+    // Use final or penultimate element of the menu for anchoring our elements to.
     Entity* pLastEntity = pScrollChild->GetChildren()->back();
+    if (pLastEntity->GetName() == "SkinSelected")
+        pLastEntity = *std::prev(pScrollChild->GetChildren()->end(), 2);
     // I know, iPhoneMapX used on a Y pos, but that's apparently what the client does.
     float vPosY = real::iPhoneMapX(5.0);
     vPosY += pLastEntity->GetVar("pos2d")->GetVector2().y;
