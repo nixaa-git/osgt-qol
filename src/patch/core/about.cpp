@@ -67,7 +67,7 @@ class AboutMenuAttribution : public patch::BasePatch
     {
         auto patches = patch::PatchManager::get().getAppliedUserPatchList();
         std::string text =
-            "\nOSGT-QOL V1.0-ALPHA\n`6Game modification created by `wCernodile`` and "
+            "\nOSGT-QOL V1.0-BETA\n`6Game modification created by `wCernodile`` and "
             "`whouz``. There are currently `w" +
             std::to_string(patches.size()) + "`` patches applied: ";
         // Create comma-separated list of patches.

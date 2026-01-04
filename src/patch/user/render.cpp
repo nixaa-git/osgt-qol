@@ -253,7 +253,7 @@ class CustomizedTitleScreen : public patch::BasePatch
 
         Entity* pTextLabel = real::CreateTextLabelEntity(pEnt->GetEntityByName("MainMenu"), "mltxt",
                                                          0, m_verLabelPos.y - m_verLabelSize.y,
-                                                         "`wOSGT-QOL V1.0-ALPHA``");
+                                                         "`wOSGT-QOL V1.0-BETA``");
         // Retrieve fontscale and scale created entity
         uint32_t fontID;
         float fontScale;
