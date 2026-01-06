@@ -215,8 +215,8 @@ class PlaymodTimersOverlay : public patch::BasePatch
                     if (it->m_killstamp - time(0) > 7200)
                         it->m_bDelayLoad = true;
                     UpdateOverlayTimer(modData->PlaymodID, it->m_killstamp);
-                    printf("[PlaymodOverlays] upd kstamp=%lld, oldstamp=%lld, dur=%d\n", it->m_killstamp, oldKillstamp, modData->Duration);
-                    if (it->m_killstamp <= time(0))
+                    printf("[PlaymodOverlays] upd kstamp=%lld, oldstamp=%lld, dur=%d, pmod=%d\n", it->m_killstamp, oldKillstamp, modData->Duration, modData->PlaymodID);
+                    if (it->m_killstamp <= time(0) || modData->Duration <= 0)
                     {
                         it = g_activeMods.erase(it);
                     }

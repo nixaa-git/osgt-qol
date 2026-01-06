@@ -47,6 +47,7 @@ class AudioStutterPatch : public patch::BasePatch
         // However, in practice, the Growtopia client fails to properly utilize said caching and as
         // such creates an annoying stutter. This forces every call to AudioManagerFMOD::Preload to
         // use file streaming to fix said stutter.
+        // nit: This approach can cause audio cutoff for those with the hearing to notice it.
         bForceStreaming = true;
         real::AudioManagerFMODPreload(this_, unk2, bLooping, bIsMusic, bAddBasePath,
                                       bForceStreaming);
@@ -69,6 +70,9 @@ class StartMusicSliderBackport : public patch::BasePatch
         // We store the start volume value in same place the future version does, inside App
         // VariantDB's "start_vol" key.
 
+        // nit / FIXME: Due to AudioManagerFMOD weirdness, the game will still play the title screen
+        // theme silently even if the volume is set to near zero.
+
         auto& game = game::GameHarness::get();
 
         real::GetAudioManager = utils::resolveRelativeCall<GetAudioManager_t>(
@@ -80,10 +84,11 @@ class StartMusicSliderBackport : public patch::BasePatch
         // preference.
         Variant* pVariant = real::GetApp()->GetVar("start_vol");
         if (pVariant->GetType() == Variant::TYPE_UNUSED)
-            pVariant->Set(1.0f);
+            pVariant->Set(0.33f);
 
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addSliderOption("qol", "Audio", "start_vol", "Start Music", &StartVolumeSliderCallback);
+        optionsMgr.addSliderOption("qol", "Audio", "start_vol", "Start Music",
+                                   &StartVolumeSliderCallback);
 
         // Hook.
         game.hookFunctionPatternDirect(pattern::AudioManagerFMODPlay, AudioManagerFMODPlay,
@@ -92,13 +97,22 @@ class StartMusicSliderBackport : public patch::BasePatch
                           &real::AudioManagerFMODSetMusicVol);
     }
 
+    static float getStartVol()
+    {
+        // We'll have to set it to 0.01f as FMOD doesn't seem to like audio level 0.00f. In order to
+        // not cause glitchiness for option slider, we'll let the variable itself go down to 0.00f.
+        float fStartVol = real::GetApp()->GetVar("start_vol")->GetFloat();
+        if (fStartVol <= 0.01f)
+            fStartVol = 0.01f;
+        return fStartVol;
+    }
+
     static void StartVolumeSliderCallback(Variant* pVariant)
     {
-        // It ignores the setting if it's 0.00f, so lets just make it 1% as fallback.
-        if (pVariant->GetFloat() == 0.00f)
-            pVariant->Set(0.01f);
+        // We'll save the start_vol, our own detour of setmusicvol will calculate adequate volume
+        // where needed.
         real::GetApp()->GetVar("start_vol")->Set(pVariant->GetFloat());
-        real::AudioManagerFMODSetMusicVol(real::GetAudioManager(), pVariant->GetFloat());
+        AudioManagerFMODSetMusicVol(real::GetAudioManager(), 0.0f);
     }
 
     static void __fastcall AudioManagerFMODSetMusicVol(void* this_, float volume)
@@ -110,8 +124,9 @@ class StartMusicSliderBackport : public patch::BasePatch
             reinterpret_cast<std::string*>(reinterpret_cast<uint8_t*>(this_) + 8);
         if (lastTrackName->find("/theme.ogg") != std::string::npos)
         {
-            real::AudioManagerFMODSetMusicVol(this_,
-                                              real::GetApp()->GetVar("start_vol")->GetFloat());
+            real::AudioManagerFMODSetMusicVol(
+                this_, real::GetApp()->GetVar("music_vol")->GetFloat() * getStartVol());
+            return;
         }
         real::AudioManagerFMODSetMusicVol(this_, volume);
     }
@@ -122,13 +137,9 @@ class StartMusicSliderBackport : public patch::BasePatch
     {
         if (bIsMusic)
         {
-            // The blaringly loud start music comes from theme.ogg on PC (or mp3 on iOS).
-            if (fName.find("/theme.ogg") != std::string::npos)
-                real::AudioManagerFMODSetMusicVol(this_,
-                                                  real::GetApp()->GetVar("start_vol")->GetFloat() * real::GetApp()->GetVar("music_vol")->GetFloat());
-            else
-                real::AudioManagerFMODSetMusicVol(this_,
-                                                  real::GetApp()->GetVar("music_vol")->GetFloat());
+            // Our detour for setmusicvol will already check if we're about to play the theme or not
+            // and calculate the appropriate volume reduction.
+            AudioManagerFMODSetMusicVol(this_, real::GetApp()->GetVar("music_vol")->GetFloat());
         }
         return real::AudioManagerFMODPlay(this_, fName, bLooping, bIsMusic, bAddBasePath,
                                           bForceStreaming);
