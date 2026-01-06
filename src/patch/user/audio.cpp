@@ -124,8 +124,7 @@ class StartMusicSliderBackport : public patch::BasePatch
             reinterpret_cast<std::string*>(reinterpret_cast<uint8_t*>(this_) + 8);
         if (lastTrackName->find("/theme.ogg") != std::string::npos)
         {
-            real::AudioManagerFMODSetMusicVol(
-                this_, real::GetApp()->GetVar("music_vol")->GetFloat() * getStartVol());
+            real::AudioManagerFMODSetMusicVol(this_, volume * getStartVol());
             return;
         }
         real::AudioManagerFMODSetMusicVol(this_, volume);
@@ -135,14 +134,12 @@ class StartMusicSliderBackport : public patch::BasePatch
                                                  bool bIsMusic, bool bAddBasePath,
                                                  bool bForceStreaming)
     {
+        void* ret = real::AudioManagerFMODPlay(this_, fName, bLooping, bIsMusic, bAddBasePath,
+                                               bForceStreaming);
+        // Our detour will calculate appropriate volume level depending on audio file played.
         if (bIsMusic)
-        {
-            // Our detour for setmusicvol will already check if we're about to play the theme or not
-            // and calculate the appropriate volume reduction.
             AudioManagerFMODSetMusicVol(this_, real::GetApp()->GetVar("music_vol")->GetFloat());
-        }
-        return real::AudioManagerFMODPlay(this_, fName, bLooping, bIsMusic, bAddBasePath,
-                                          bForceStreaming);
+        return ret;
     }
 };
 REGISTER_USER_GAME_PATCH(StartMusicSliderBackport, start_music_slider_backport);
