@@ -222,6 +222,8 @@ void OptionsManager::renderCheckbox(OptionsManager::GameOption& optionDef, void*
     vPosY += real::iPhoneMapY(20.0);
 
     // Retrieve fontscale
+    // Note: Vanilla seems to put fontID 0 and fontScale as 1.0, but it doesn't scale... at all, so
+    // this might actually be better for UX.
     uint32_t fontID;
     float fontScale;
     real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 20);
@@ -284,12 +286,27 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
     real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 20);
 
     // They added some wack trailing args we don't care about to end of TextButtonEntity.
-    Entity* pBackButton = real::CreateTextButtonEntity(pMCEnt, "back", vPosX, vPosY, " << ", false,
+    Entity* pBackButton = real::CreateTextButtonEntity(pMCEnt, "back", vPosX, vPosY, " <<  ", false,
                                                        0, "", 0, "", 1, 0);
     real::SetupTextEntity(pBackButton, fontID, fontScale);
     real::AddBMPRectAroundEntity(pBackButton, 0xccb887ff, 0xccb887ff, real::iPadMapY(5.0), true,
                                  fontScale, fontID, false);
     SetTextShadowColor(pBackButton, 150);
+
+    if (optionDef.type == OPTION_MULTICHOICE_DUALBUTTONS)
+    {
+        Entity* pBackButtonLower = real::CreateTextButtonEntity(
+            pMCEnt, "back_lower",
+            vPosX + pBackButton->GetVar("size2d")->GetVector2().x + real::iPadMapY(10.0), vPosY,
+            " <  ", false, 0, "", 0, "", 1, 0);
+        real::SetupTextEntity(pBackButtonLower, fontID, fontScale);
+        real::AddBMPRectAroundEntity(pBackButtonLower, 0xccb887ff, 0xccb887ff, real::iPadMapY(5.0),
+                                     true, fontScale, fontID, false);
+        SetTextShadowColor(pBackButtonLower, 150);
+        if (optionDef.signal != nullptr)
+            pBackButtonLower->GetFunction("OnButtonSelected")
+                ->sig_function.connect(reinterpret_cast<VariantListCallback>(optionDef.signal));
+    }
 
     Entity* pTextLabel = real::CreateTextLabelEntity(pMCEnt, "txt", vPosX + (vSizeX / 2), vPosY,
                                                      (*optionDef.displayOptions)[idx]);
@@ -303,6 +320,22 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
     real::AddBMPRectAroundEntity(pNextButton, 0xccb887ff, 0xccb887ff, real::iPadMapY(5.0), true,
                                  fontScale, fontID, false);
     SetTextShadowColor(pNextButton, 150);
+
+    if (optionDef.type == OPTION_MULTICHOICE_DUALBUTTONS)
+    {
+        Entity* pNextButtonLower = real::CreateTextButtonEntity(
+            pMCEnt, "next_lower",
+            vPosX + vSizeX - pNextButton->GetVar("size2d")->GetVector2().x - real::iPadMapY(10.0),
+            vPosY, " >  ", false, 0, "", 0, "", 1, 0);
+        pNextButtonLower->GetVar("alignment")->Set(ALIGNMENT_UPPER_RIGHT);
+        real::SetupTextEntity(pNextButtonLower, fontID, fontScale);
+        real::AddBMPRectAroundEntity(pNextButtonLower, 0xccb887ff, 0xccb887ff, real::iPadMapY(5.0),
+                                     true, fontScale, fontID, false);
+        SetTextShadowColor(pNextButtonLower, 150);
+        if (optionDef.signal != nullptr)
+            pNextButtonLower->GetFunction("OnButtonSelected")
+                ->sig_function.connect(reinterpret_cast<VariantListCallback>(optionDef.signal));
+    }
 
     if (optionDef.signal != nullptr)
     {
@@ -422,6 +455,7 @@ void OptionsManager::HandleOptionPageButton(VariantList* pVL)
                 break;
             }
             case game::OptionsManager::OPTION_MULTICHOICE:
+            case game::OptionsManager::OPTION_MULTICHOICE_DUALBUTTONS:
             {
                 renderMultiChoice(option, (void*)pScrollChild, vPosX, vPosY);
                 break;
@@ -536,6 +570,7 @@ void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, v
             break;
         }
         case game::OptionsManager::OPTION_MULTICHOICE:
+        case game::OptionsManager::OPTION_MULTICHOICE_DUALBUTTONS:
         {
             renderMultiChoice(option, (void*)pScrollChild, vPosX, vPosY);
             break;

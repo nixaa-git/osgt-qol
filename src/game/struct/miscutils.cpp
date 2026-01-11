@@ -99,3 +99,13 @@ std::string IntToTimeSeconds(uint32_t seconds, bool bTextFormat, bool showDays)
 	if (r.empty()) return "Now!";
 	return r;
 }
+
+std::string ToLowerCaseString (const std::string & s)
+{
+	std::string d (s);
+	for (unsigned int i=0; i < d.length(); i++)
+	{
+		d[i] = tolower(d[i]);
+	}
+	return d;
+}

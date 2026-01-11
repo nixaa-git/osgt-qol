@@ -5,7 +5,9 @@
 #include "patch/patch.hpp"
 
 #include "game/struct/entity.hpp"
+#include "game/struct/miscutils.hpp"
 #include "utils/utils.hpp"
+#include <string>
 
 // OnlineMenuCreate
 // Returns: Online Menu entity
@@ -64,6 +66,11 @@ REGISTER_GAME_FUNCTION(
     GameLogicComponentOnLogonAccepted,
     "48 8B C4 55 56 57 41 54 41 55 41 56 41 57 48 8D 68 A8 48 81 EC 20 01 00 00 48 C7 44 24 38 FE",
     __fastcall, void, GameLogicComponent*, VariantList*);
+
+REGISTER_GAME_FUNCTION(GetRegionString,
+                       "48 8B C4 55 48 8D 68 A1 48 81 EC E0 00 00 00 48 C7 45 9F FE FF FF FF 48 89 "
+                       "58 10 48 89 78 18 48 8B ? ? ? ? ? 48 33 C4 48 89 45 47 48 8B D9",
+                       __fastcall, std::string);
 
 class ServerSwitcher : public patch::BasePatch
 {
@@ -303,3 +310,122 @@ class AcceptOlderLogonIdentifier : public patch::BasePatch
     }
 };
 REGISTER_USER_GAME_PATCH(AcceptOlderLogonIdentifier, accept_old_onsuperlogon);
+
+// Valid 2-letter non-developer flags for V3.02 vanilla cache, sorted alphabetically.
+static std::vector<std::string> validRegions = {
+    "ad", "ae", "af", "ag", "ai", "al", "am", "an", "ao", "ar", "as", "at", "au", "aw", "ax", "az",
+    "ba", "bb", "bd", "be", "bf", "bg", "bh", "bi", "bj", "bm", "bn", "bo", "br", "bs", "bt", "bv",
+    "bw", "by", "bz", "ca", "cc", "cd", "cf", "cg", "ch", "ci", "ck", "cl", "cm", "cn", "co", "cr",
+    "cs", "cu", "cv", "cx", "cy", "cz", "de", "dj", "dk", "dm", "do", "dz", "ec", "ee", "eg", "eh",
+    "er", "es", "et", "fi", "fj", "fk", "fm", "fo", "fr", "ga", "gb", "gd", "ge", "gf", "gh", "gi",
+    "gl", "gm", "gn", "gp", "gq", "gr", "gs", "gt", "gu", "gw", "gy", "hk", "hm", "hn", "hr", "ht",
+    "hu", "id", "ie", "il", "in", "io", "iq", "ir", "is", "it", "jm", "jo", "jp", "ke", "kg", "kh",
+    "ki", "km", "kn", "kp", "kr", "kw", "ky", "kz", "la", "lb", "lc", "lg", "li", "lk", "lr", "ls",
+    "lt", "lu", "lv", "ly", "ma", "mc", "md", "me", "mg", "mh", "mk", "ml", "mm", "mn", "mo", "mp",
+    "mq", "mr", "ms", "mt", "mu", "mv", "mw", "mx", "my", "mz", "na", "nc", "ne", "nf", "ng", "ni",
+    "nl", "no", "np", "nr", "nu", "nz", "om", "pa", "pe", "pf", "pg", "ph", "pk", "pl", "pm", "pn",
+    "pr", "ps", "pt", "pw", "py", "qa", "re", "ro", "rs", "ru", "rw", "sa", "sb", "sc", "sd", "se",
+    "sg", "sh", "si", "sj", "sk", "sl", "sm", "sn", "so", "sr", "st", "sv", "sy", "sz", "tc", "td",
+    "tf", "tg", "th", "tj", "tk", "tl", "tm", "tn", "to", "tr", "tt", "tv", "tw", "tz", "ua", "ug",
+    "um", "us", "uy", "uz", "va", "vc", "ve", "vg", "vi", "vn", "vu", "wf", "ws", "ye", "yt", "za",
+    "zm", "zw"};
+
+class LocaleSwitcher : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        auto& game = game::GameHarness::get();
+
+        game.hookFunctionPatternDirect<GetRegionString_t>(pattern::GetRegionString, GetRegionString,
+                                                          &real::GetRegionString);
+
+        Variant* pVariant = real::GetApp()->GetVar("osgt_qol_localeswitch_pref");
+        if (pVariant->GetType() != Variant::TYPE_UINT32)
+        {
+            std::string currentRegion = real::GetRegionString();
+            if (currentRegion.length() == 5)
+                currentRegion = ToLowerCaseString(currentRegion.substr(3, 2));
+            auto it = std::find(validRegions.begin(), validRegions.end(), currentRegion);
+            if (it != validRegions.end())
+                pVariant->Set(uint32_t(std::distance(validRegions.begin(), it)));
+            else
+                pVariant->Set(225U);
+        }
+        auto& optionsMgr = game::OptionsManager::get();
+        optionsMgr.addMultiChoiceOptionDoubleButtons("qol", "System", "osgt_qol_localeswitch_pref",
+                                                     "Locale for flag (needs re-login to apply)",
+                                                     validRegions, &LocaleSwitcherOnSelect,
+                                                     180.0f);
+    }
+
+    static void LocaleSwitcherOnSelect(VariantList* pVariant)
+    {
+        // Update the multichoice index
+        Entity* pClickedEnt = pVariant->Get(1).GetEntity();
+        Variant* pOptVar = real::GetApp()->GetVar("osgt_qol_localeswitch_pref");
+        uint32_t idx = pOptVar->GetUINT32();
+        std::string entName = pClickedEnt->GetName();
+        // We are using double-buttons optiondef, we'll use "lower" values to decrement/increment by
+        // one and the normal values to skip by first character of country code.
+        if (entName == "back_lower")
+        {
+            if (idx == 0)
+                idx = (uint32_t)validRegions.size() - 1;
+            else
+                idx--;
+        }
+        else if (entName == "next_lower")
+        {
+            if (idx >= validRegions.size() - 1)
+                idx = 0;
+            else
+                idx++;
+        }
+        else if (entName == "back")
+        {
+            char group = validRegions[idx][0];
+            while (true)
+            {
+                if (idx == 0)
+                    idx = (uint32_t)validRegions.size() - 1;
+                else
+                    idx--;
+                if (validRegions[idx][0] != group)
+                {
+                    break;
+                }
+            }
+        }
+        else if (entName == "next")
+        {
+            char group = validRegions[idx][0];
+            while (true)
+            {
+                if (idx >= validRegions.size() - 1)
+                    idx = 0;
+                else
+                    idx++;
+                if (validRegions[idx][0] != group)
+                {
+                    break;
+                }
+            }
+        }
+        pOptVar->Set(idx);
+        // Update the option label
+        Entity* pTextLabel = pClickedEnt->GetParent()->GetEntityByName("txt");
+        real::SetTextEntity(pTextLabel, validRegions[idx]);
+    }
+
+    static std::string __fastcall GetRegionString()
+    {
+        Variant* pVariant = real::GetApp()->GetVar("osgt_qol_localeswitch_pref");
+        if (pVariant->GetUINT32() < validRegions.size())
+        {
+            return "en_" + validRegions[pVariant->GetUINT32()];
+        }
+        return real::GetRegionString();
+    }
+};
+REGISTER_USER_GAME_PATCH(LocaleSwitcher, locale_switcher);

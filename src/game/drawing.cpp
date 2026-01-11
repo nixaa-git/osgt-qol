@@ -152,6 +152,7 @@ void GameHarness::resolveRenderSigs()
 static uint8_t loadScreenState = 0;
 void GameHarness::toggleLoadScreen()
 {
+    // FIXME: Resolution changes from save reload will make loading screen offset and not scale.
     if (loadScreenState == 0)
     {
         // Resolve a subset of functions needed here.

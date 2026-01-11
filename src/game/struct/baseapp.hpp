@@ -85,6 +85,8 @@ class BaseApp
     std::vector<uint8_t> m_touchTracker;
     std::string m_version;
     bool m_bDisableSubPixelBlits;
-    uint8_t padding4[71];
+    uint8_t padding4[7];
+    std::string* m_pVideoMode;
+    uint8_t padding5[56];
 };
 static_assert(sizeof(BaseApp) == 2920, "BaseApp class size mismatch.");

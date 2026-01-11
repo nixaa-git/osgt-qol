@@ -58,6 +58,7 @@ User Patches:
 - Allow releasing mutex - The game no longer runs into an integrity error when releasing mutex with external tools.
 - Handle old logon handshakes - Allows the V3.02 to accept all historical logon handshake packets.
 - Extended Chat Limit - Increases the chat history limit from the original 125 up to 500.
+- Locale Switcher - Allows you to change your in-game country flag without having to restart your PC or game.
 
 ## Recommended additions
 When Growtopia switched to using BGFX as its rendering framework, Windows clients started using DirectX9 as opposed to OpenGL. With this transition, several visuals broke.

@@ -122,7 +122,8 @@ class OptionsManager
     {
         OPTION_SLIDER,
         OPTION_CHECKBOX,
-        OPTION_MULTICHOICE
+        OPTION_MULTICHOICE,
+        OPTION_MULTICHOICE_DUALBUTTONS
     };
     struct GameOption
     {
@@ -261,6 +262,37 @@ class OptionsManager
 #endif
         GameOption option;
         option.type = OPTION_MULTICHOICE;
+        option.varName = varName;
+        option.displayName = displayName;
+        option.displayOptions = &displayOptions;
+        option.signal = (void*)pCallback;
+        option.vModSizeX = vModSizeX;
+        optionPages[page].sections[section].push_back(option);
+    }
+
+    void addMultiChoiceOptionDoubleButtons(std::string page, std::string section, std::string varName,
+                              std::string displayName, std::vector<std::string>& displayOptions,
+                              VariantListCallback pCallback, float vModSizeX = 0)
+    {
+#ifdef DEBUG
+        if (optionPages.find(page) == optionPages.end())
+        {
+            printf("[WARN] Added a slider option to page %s on section %s, but page doesn't exist. "
+                   "Using the ID as name.\n",
+                   page, section);
+        }
+        else
+        {
+            if (optionPages[page].sections.find(section) == optionPages[page].sections.end())
+            {
+                printf("[WARN] Added a slider option to page %s on section %s, but section doesn't "
+                       "exist. Using the ID as name.\n",
+                       page, section);
+            }
+        }
+#endif
+        GameOption option;
+        option.type = OPTION_MULTICHOICE_DUALBUTTONS;
         option.varName = varName;
         option.displayName = displayName;
         option.displayOptions = &displayOptions;

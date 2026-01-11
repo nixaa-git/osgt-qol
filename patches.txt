@@ -14,11 +14,8 @@ Remove chat margin, chat tabs and [S] chat stuff.
 Remove guild icon gap.
 +no_guild_icon
 
-Adds OSGT-QOL credits section
-+about_menu_attrib
-
-Changes the main menu weather to Night
-+goodnight_title_screen
+Modifies the title screen to have custom selectable weathers and version of the mod on corner
++customized_title_screen
 
 Adds a Server Data Endpoint field to Online menu. Defaults to Oldschool Growtopia.
 +server_data_switcher
@@ -29,11 +26,50 @@ Forces the game to place its cache where the game is executed from.
 Backports the Bubble Opacity slider and feature.
 +bubble_opacity_backport
 
-Adds new hotkeys to the game. Currently it adds keys 1 through 3 to select items from inventory's quickbar.
-+hotkey_patch
-
 Your ears will thank you! Backports Start Music volume slider
 +start_music_slider_backport
 
 Returns the old checkbox paddings (i.e. they used to be more tightly packed)
 +old_checkboxes
+
+Tech proof-of-concept weather, one could activate it on their server by mapping the weather with "loader/weather/blood_moon" as it's alt file and any arbitrary weather ID.
++blood_moon_demo_weather
+
+Removes the integrity checks that would close your game if a mutex was to be released.
++allow_releasing_mutex
+
+Adds a hotkey Ctrl+H to disable rightmost UI buttons and change their opacity.
++hide_my_ui
+
+Allows you to resize the game without having to disconnect from the game.
++live_gui_rebuilder
+
+Directs all older forms of SuperLogon to the current one.
++accept_old_onsuperlogon
+
+Adds an overlay below your chat for your timed mods.
++playmod_overlay
+
+Lets you load up to items.dat v21 on V3.02
++items_dat_crashmenot
+
+Allows you to cycle the option for Spacebar to Punch using Ctrl+P
++quick_toggle_space_to_punch
+
+Adds hotkeys 1/2/3 to cycle through your hotbar. You can use vanilla Tab shortcut for fist/wrench.
++quickbar_hotkey_patch
+
+Extends chat history limit from 125 lines to 500
++chat_limit_extended
+
+Fixes vanilla bug with rendering Legendary Wings on V3.02
++legendary_wing_patch
+
+Forces the game to render any instance of old Da Vinci Wings ID as the new one
++fake_davinci_id
+
+Optimizes the light level calculation code for light emitters such as torches and chandeliers, has a huge impact on large zoom levels.
++lightsource_optimized
+
+Allows you to switch country flags with game launched without system modifications.
++locale_switcher
