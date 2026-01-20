@@ -1,0 +1,3 @@
+CompileFlags:
+  # This fixes clangd's issues with Boost headers
+  Add: ["-DBOOST_PP_CONFIG_FLAGS()=0x0000"]
