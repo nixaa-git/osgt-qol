@@ -53,7 +53,7 @@ void writeMemoryPattern(void* address, const std::string& pattern)
     for (size_t i = 0; i < bytes.size(); i++)
     {
         if (bytes[i] != UINT16_MAX)
-            *ptr = bytes[i];
+            *ptr = (uint8_t)bytes[i];
         ptr++;
     }
     if (!VirtualProtect(address, bytes.size(), old, &old))
