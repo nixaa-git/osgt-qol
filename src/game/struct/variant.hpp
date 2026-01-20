@@ -5,7 +5,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#define BOOST_SIGNALS_NO_DEPRECATION_WARNING
 #include <boost/signal.hpp>
 
 class Entity;
@@ -85,9 +84,11 @@ class Variant
     }
 
     Variant() { SetDefaults(); }
-    ~Variant(){
+    ~Variant()
+    {
         // SAFE_DELETE(m_pSig_onChanged);
-        if (m_pSig_onChanged) {
+        if (m_pSig_onChanged)
+        {
             delete m_pSig_onChanged;
             m_pSig_onChanged = 0;
         }
@@ -97,17 +98,18 @@ class Variant
     {
         m_type = TYPE_UNUSED;
         // SAFE_DELETE(m_pSig_onChanged);
-        if (m_pSig_onChanged) {
+        if (m_pSig_onChanged)
+        {
             delete m_pSig_onChanged;
             m_pSig_onChanged = 0;
         }
     }
 
-    boost::signal<void (Variant*)> * GetSigOnChanged()
+    boost::signal<void(Variant*)>* GetSigOnChanged()
     {
         if (!m_pSig_onChanged)
         {
-            m_pSig_onChanged = new boost::signal<void (Variant*)>;
+            m_pSig_onChanged = new boost::signal<void(Variant*)>;
         }
         return m_pSig_onChanged;
     }
@@ -309,13 +311,13 @@ class Variant
         int32_t m_as_int32s[4];
     };
     std::string m_string;
-    boost::signal<void (Variant*)> *m_pSig_onChanged;
+    boost::signal<void(Variant*)>* m_pSig_onChanged;
 };
 
 class VariantList
 {
   public:
-    VariantList(){};
+    VariantList() {};
 
     Variant& Get(int parmNum) { return m_variant[parmNum]; }
     VariantList(Variant v0) { m_variant[0] = v0; }

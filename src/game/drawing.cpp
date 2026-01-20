@@ -1,4 +1,6 @@
-#include "MinHook.h"
+
+#include <minhook.h>
+
 #include "game.hpp"
 #include "game/struct/component.hpp"
 #include "game/struct/components/mapbg.hpp"

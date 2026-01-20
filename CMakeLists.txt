@@ -6,5 +6,5 @@ if(NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "Only 64-bit MSVC is supported.")
 endif()
 
-add_subdirectory(dep)
+add_subdirectory(vendor)
 add_subdirectory(src)
