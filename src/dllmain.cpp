@@ -3,17 +3,29 @@
 #include <string>
 #include <windows.h>
 
-#define EXPORT extern "C" __declspec(dllexport)
+static std::once_flag isInitialized;
 
-// Entry point.
-void setup()
+using DirectInput8CreateFn = HRESULT(WINAPI*)(HINSTANCE, DWORD, REFIID, LPVOID*, LPVOID);
+static DirectInput8CreateFn originalDirectInput8Create = nullptr;
+
+void createDebugConsole()
 {
-#ifdef DEVELOPMENT
-    // Create a console window for debug builds.
     AllocConsole();
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
     SetConsoleTitleA("osgt-qol");
+}
+
+void showErrorMessageBox(const std::string& message)
+{
+    MessageBoxA(nullptr, message.c_str(), "Error",
+                MB_ICONERROR | MB_OK | MB_TOPMOST | MB_SETFOREGROUND);
+}
+
+void setup()
+{
+#ifdef DEVELOPMENT
+    createDebugConsole();
 #endif
 
     auto& game = game::GameHarness::get();
@@ -22,9 +34,9 @@ void setup()
     auto& input = game::InputEvents::get();
     auto& itemAPI = game::ItemAPI::get();
     auto& weatherMgr = game::WeatherManager::get();
+
     try
     {
-        // Initialize modding APIs and load patches.
         game.initialize();
 
         // Patch out the CRC integrity check.
@@ -55,44 +67,59 @@ void setup()
     }
     catch (const std::exception& e)
     {
-#ifdef DEVELOPMENT
-        // Output error to console.
-        std::fprintf(stderr, "FATAL: %s\n", e.what());
-        return;
-#else
-        // Show error message box and exit.
+        std::fprintf(stderr, "SETUP FAILED: %s\n", e.what());
         game.setWindowVisible(false);
-        MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR | MB_OK);
+        showErrorMessageBox(e.what());
         ExitProcess(EXIT_FAILURE);
-#endif
     }
 }
 
-// Runs OSGT-QOL setup (entry point) if it hasn't ran yet.
-void runSetupIfNeeded()
+void loadOriginalDirectInput8Create()
 {
-    static long done = 0;
-    if (InterlockedCompareExchange(&done, 1, 0) == 0)
+    // Create path to system dinput8.dll
+    uint32_t sysPathSize = GetSystemDirectoryW(nullptr, 0);
+    std::wstring modulePath(sysPathSize - 1, L'\0');
+    GetSystemDirectoryW(&modulePath[0], sysPathSize);
+    modulePath += L"\\dinput8.dll";
+
+    // Load original function
+    HMODULE dinput8 = LoadLibraryW(modulePath.c_str());
+    originalDirectInput8Create =
+        reinterpret_cast<DirectInput8CreateFn>(GetProcAddress(dinput8, "DirectInput8Create"));
+}
+
+HRESULT WINAPI DirectInput8Create(HINSTANCE hInst, DWORD dwVersion, REFIID riidltf, LPVOID* ppvOut,
+                                  LPVOID punkOuter)
+{
+    std::call_once(isInitialized,
+                   []()
+                   {
+                       loadOriginalDirectInput8Create();
+                       if (originalDirectInput8Create)
+                       {
+                           setup();
+                       }
+                   });
+
+    if (!originalDirectInput8Create)
     {
-        // Stall the game until the mods have initialized.
-        setup();
+        // loadOriginalDirectInput8Create must have failed
+        showErrorMessageBox("Failed to load original DirectInput8Create function");
+        return E_FAIL;
     }
+    return originalDirectInput8Create(hInst, dwVersion, riidltf, ppvOut, punkOuter);
 }
 
-// Initializes the library if needed and calls original DirectInput8Create.
-EXPORT HRESULT WINAPI DirectInput8Create(HINSTANCE instance, DWORD version, REFIID id, LPVOID* out,
-                                         LPVOID unk)
+BOOL WINAPI DllMain(HINSTANCE hInstDll, DWORD fdwReason, LPVOID lpvReserved)
 {
-    using DirectInput8Create_t = HRESULT(WINAPI*)(HINSTANCE, DWORD, REFIID, LPVOID*, LPVOID);
-    runSetupIfNeeded();
-    // GetSystemDirectoryW(nullptr, 0) will returns the size of the buffer needed to store the
-    // path without the null terminator.
-    uint32_t sysDirPathSize = GetSystemDirectoryW(nullptr, 0);
-    std::wstring path(sysDirPathSize - 1, L'\0');
-    GetSystemDirectoryW(&path[0], sysDirPathSize);
-    path += L"\\dinput8.dll";
-    // Assume dinput8 is on the system, the game depends on it anyway.
-    HMODULE dinput8 = LoadLibraryW(path.c_str());
-    auto fn = (DirectInput8Create_t)GetProcAddress(dinput8, "DirectInput8Create");
-    return fn != nullptr ? fn(instance, version, id, out, unk) : E_FAIL;
+    switch (fdwReason)
+    {
+    case DLL_PROCESS_ATTACH:
+        DisableThreadLibraryCalls(hInstDll);
+        break;
+    case DLL_PROCESS_DETACH:
+        // If we ever want to add proper cleanup code, it's either RAII or here
+        break;
+    }
+    return TRUE;
 }

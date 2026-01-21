@@ -1,5 +1,6 @@
 set(SOURCES
     dllmain.cpp
+    dinput8.def
     res/icon.rc
     game/game.cpp
     game/input.cpp
