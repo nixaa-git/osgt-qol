@@ -46,7 +46,7 @@ class GameHarness
 
     // Temporarily used to store various function signature resolves that are used in
     // structs/classes. This should be probably reworked when an API-consumer model is created.
-    void resolveRenderSigs();
+    void resolveSharedSigs();
 
     // Toggles the loading screen
     void toggleLoadScreen();
@@ -101,8 +101,8 @@ class GameHarness
     // Main game window handle.
     HWND window;
 
-    // Audio mute state
-    bool audioMuted = false;
+    // Last saved game title
+    std::string lastSavedTitle = "Growtopia [OSGT-QOL]";
 
     // Last audio level state pre-mute
     DWORD audioLevel;

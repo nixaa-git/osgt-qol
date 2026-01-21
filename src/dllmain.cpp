@@ -8,7 +8,6 @@
 // Entry point.
 void setup()
 {
-    SetThreadDescription(GetCurrentThread(), L"OSGT-QOL Mod Thread");
 #ifdef DEVELOPMENT
     // Create a console window for debug builds.
     AllocConsole();
@@ -25,19 +24,22 @@ void setup()
     try
     {
         // Initialize modding APIs and load patches.
-        game.toggleLoadScreen();
-        game.resolveRenderSigs();
+        game.initialize();
+        // Patch out the CRC integrity check.
+        auto addr = game.findMemoryPattern<uint8_t*>("00 3B C1 75 ? 85 C9");
+        utils::nopMemory(addr + 1, 6);
+        game.resolveSharedSigs();
+        // game.toggleLoadScreen();
         game.setWindowModdedIcon();
-        game.setWindowTitle("Growtopia [OSGT-QOL]");
+        game.setWindowTitle("Growtopia [OSGT-QOL] - Patching the game - Please wait!");
         optionsMgr.initialize();
         optionsMgr.addOptionPage("qol", "OSGT-QOL Settings");
         input.initialize();
         itemAPI.initialize();
         weatherMgr.initialize();
         patchMgr.applyPatchesFromFile("patches.txt");
-        game.toggleLoadScreen();
-        // reload icon as InitVideo may mess this up.
-        game.setWindowModdedIcon();
+        // game.toggleLoadScreen();
+        game.setWindowTitle("Growtopia [OSGT-QOL]");
         std::fprintf(stderr, "Done applying patches.\n");
     }
     catch (const std::exception& e)
@@ -61,20 +63,8 @@ void runSetupIfNeeded()
     static long done = 0;
     if (InterlockedCompareExchange(&done, 1, 0) == 0)
     {
-        auto& game = game::GameHarness::get();
-        // Delay loading the game until we've initialized game harness and can prevent loading the
-        // MainMenuCreate call from App init. This allows us to use a loading screen while patching
-        // is still ongoing. Some patches may clash with main menu existing and worse yet crash the
-        // game.
-        game.initialize();
-        // Patch out CRC integrity check.
-        auto addr = game.findMemoryPattern<uint8_t*>("00 3B C1 75 ? 85 C9");
-        utils::nopMemory(addr + 1, 6);
-        // Patch out MainMenuCreate call.
-        addr = game.findMemoryPattern<uint8_t*>(
-            "33 D2 49 8B CE E8 ? ? ? ? F3 0F 10 ? ? ? ? ? 0F 2F ? ? ? ? ? 0F");
-        utils::nopMemory(addr + 5, 5);
-        CreateThread(NULL, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(setup), NULL, 0, NULL);
+        // Stall the game until the mods have initialized.
+        setup();
     }
 }
 

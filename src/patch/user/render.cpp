@@ -19,6 +19,12 @@
 
 #include "game/struct/world/world.hpp"
 
+// MainMenuCreate
+REGISTER_GAME_FUNCTION(
+    MainMenuCreate,
+    "48 8B C4 55 57 41 54 41 56 41 57 48 8D A8 E8 F8 FF FF 48 81 EC F0 07 00 00 48 C7 85 80 01",
+    __fastcall, void, Entity*, bool);
+
 // Background_Sunset::Background_Sunset
 REGISTER_GAME_FUNCTION(BackgroundSunset,
                        "48 89 4C 24 08 55 56 57 41 56 41 57 48 8B EC 48 81 EC 80 00 00 00 48 C7 45 "
@@ -166,13 +172,8 @@ class CustomizedTitleScreen : public patch::BasePatch
         real::BackgroundBountiful =
             game.findMemoryPattern<BackgroundBountiful_t>(pattern::BackgroundBountiful);
 
-        // Hook
-        // pattern::MainMenuCreate collision with drawing.cpp - so we define pattern manually here.
-        game.hookFunctionPatternDirect<MainMenuCreate_t>(
-            "48 8B C4 55 57 41 54 41 56 41 57 48 8D A8 E8 F8 FF FF 48 81 EC F0 07 00 00 48 C7 85 "
-            "80 01",
-            MainMenuCreate, &real::MainMenuCreate);
-        patched::MainMenuCreate = MainMenuCreate;
+        game.hookFunctionPatternDirect<MainMenuCreate_t>(pattern::MainMenuCreate, MainMenuCreate,
+                                                         &real::MainMenuCreate);
 
         // We will allow the end-user to change their title screen weather preference
         auto& optionsMgr = game::OptionsManager::get();
@@ -473,7 +474,6 @@ class HideMyUI : public patch::BasePatch
         auto& game = game::GameHarness::get();
 
         auto& inputEvents = game::InputEvents::get();
-        AddCustomKeybinds();
         inputEvents.m_sig_onArcadeInput.connect(&OnArcadeInput);
         inputEvents.m_sig_addWasdKeys.connect(&AddCustomKeybinds);
 
@@ -957,10 +957,6 @@ class LiveGUIRebuilder : public patch::BasePatch
                     Entity* pGameMenu = pWGUI->GetEntityByName("GameMenu");
                     pWGUI->RemoveEntityByAddress(pGameMenu);
                     real::GameMenuCreate(pWGUI);
-
-                    // Restore game window icon
-                    auto& game = game::GameHarness::get();
-                    game.setWindowModdedIcon();
                     return;
                 }
             }

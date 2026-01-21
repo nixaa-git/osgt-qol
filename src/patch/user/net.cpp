@@ -67,6 +67,11 @@ REGISTER_GAME_FUNCTION(
     "48 8B C4 55 56 57 41 54 41 55 41 56 41 57 48 8D 68 A8 48 81 EC 20 01 00 00 48 C7 44 24 38 FE",
     __fastcall, void, GameLogicComponent*, VariantList*);
 
+REGISTER_GAME_FUNCTION(
+    GameLogicComponentOnAdd,
+    "48 8B C4 55 57 41 56 48 8D A8 68 F9 FF FF 48 81 EC 80 07 00 00 48 C7 44 24 50 FE FF FF FF",
+    __fastcall, void, GameLogicComponent*);
+
 REGISTER_GAME_FUNCTION(GetRegionString,
                        "48 8B C4 55 48 8D 68 A1 48 81 EC E0 00 00 00 48 C7 45 9F FE FF FF FF 48 89 "
                        "58 10 48 89 78 18 48 8B ? ? ? ? ? 48 33 C4 48 89 45 47 48 8B D9",
@@ -280,7 +285,14 @@ class AcceptOlderLogonIdentifier : public patch::BasePatch
         real::GameLogicComponentOnLogonAccepted =
             game.findMemoryPattern<GameLogicComponentOnLogonAccepted_t>(
                 pattern::GameLogicComponentOnLogonAccepted);
+        game.hookFunctionPatternDirect<GameLogicComponentOnAdd_t>(pattern::GameLogicComponentOnAdd,
+                                                                  GameLogicComponentOnAdd,
+                                                                  &real::GameLogicComponentOnAdd);
+    }
 
+    static void __fastcall GameLogicComponentOnAdd(GameLogicComponent* this_)
+    {
+        real::GameLogicComponentOnAdd(this_);
         std::vector<std::string> logonFunctions = {"OnSuperMainStartAcceptLogonFB211131ddf",
                                                    "OnSuperMainStartAcceptLogonFB211131dd",
                                                    "OnSuperMainStartAcceptLogonFB211131d",
@@ -300,9 +312,7 @@ class AcceptOlderLogonIdentifier : public patch::BasePatch
 
         for (auto logonFunction : logonFunctions)
         {
-            real::GetApp()
-                ->GetGameLogic()
-                ->GetShared()
+            this_->GetShared()
                 ->GetFunction(logonFunction)
                 ->sig_function.connect(1, boost::bind(real::GameLogicComponentOnLogonAccepted,
                                                       real::GetApp()->GetGameLogic(), _1));
@@ -355,8 +365,7 @@ class LocaleSwitcher : public patch::BasePatch
         auto& optionsMgr = game::OptionsManager::get();
         optionsMgr.addMultiChoiceOptionDoubleButtons("qol", "System", "osgt_qol_localeswitch_pref",
                                                      "Locale for flag (needs re-login to apply)",
-                                                     validRegions, &LocaleSwitcherOnSelect,
-                                                     180.0f);
+                                                     validRegions, &LocaleSwitcherOnSelect, 180.0f);
     }
 
     static void LocaleSwitcherOnSelect(VariantList* pVariant)

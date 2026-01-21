@@ -6,10 +6,6 @@
     namespace real                                                                                 \
     {                                                                                              \
     extern name##_t name;                                                                          \
-    }                                                                                              \
-    namespace patched                                                                              \
-    {                                                                                              \
-    extern name##_t name;                                                                          \
     }
 
 // Declared in options.cpp

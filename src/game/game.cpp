@@ -40,7 +40,12 @@ void GameHarness::initialize()
 
 void GameHarness::setWindowTitle(const std::string& title)
 {
-    SetWindowTextA(window, title.c_str());
+    if (title.size() == 0)
+        setWindowTitle(lastSavedTitle);
+    else {
+        SetWindowTextA(window, title.c_str());
+        lastSavedTitle = title;
+    }
 }
 
 void GameHarness::updateWindowHandle()

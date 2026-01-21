@@ -10,6 +10,16 @@ class GameLogicComponent;
 class App : public BaseApp
 {
   public:
+    virtual ~App();
+    virtual void Init();
+    virtual void Kill();
+    virtual void OnPreInitVideo();
+    virtual void Draw();
+    virtual void Update();
+    virtual void OnEnterBackground();
+    virtual void OnEnterForeground();
+    virtual void OnScreenSizeChange();
+    virtual void LoadVarDB();
     GameLogicComponent* GetGameLogic() { return m_pGameLogic; }
     ItemInfoManager* GetItemInfoManager() { return &m_itemInfoManager; }
     void* GetTileSheetManager() { return &m_tileSheetManager; }

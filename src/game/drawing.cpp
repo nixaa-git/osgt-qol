@@ -116,12 +116,6 @@ REGISTER_GAME_FUNCTION(FadeInEntity,
                        __fastcall, void, Entity* pEnt, bool bRecursive, int timeMS, int delayMS,
                        float fadeTarget, int timing);
 
-// MainMenuCreate
-REGISTER_GAME_FUNCTION(
-    MainMenuCreate,
-    "48 8B C4 55 57 41 54 41 56 41 57 48 8D A8 E8 F8 FF FF 48 81 EC F0 07 00 00 48 C7 85 80 01",
-    __fastcall, void, Entity*, bool);
-
 REGISTER_GAME_FUNCTION(SetupEntityIconFromItem,
                        "48 8B C4 55 57 41 56 48 8D 68 A9 48 81 EC A0 00 00 00 48 C7 45 0F FE FF FF "
                        "FF 48 89 58 18 48 89 70 20 48 8B ? ? ? ? ? 48 33 C4 48 89 45 37",
@@ -130,8 +124,21 @@ REGISTER_GAME_FUNCTION(SetupEntityIconFromItem,
 
 namespace game
 {
-void GameHarness::resolveRenderSigs()
+void GameHarness::resolveSharedSigs()
 {
+    real::GetApp =
+        utils::resolveRelativeCall<GetApp_t>(findMemoryPattern<uint8_t*>(pattern::GetApp) + 4);
+    real::GetScreenRect = findMemoryPattern<GetScreenRect_t>(pattern::GetScreenRect);
+    real::SetupTextEntity = findMemoryPattern<SetupTextEntity_t>(pattern::SetupTextEntity);
+    real::CreateOverlayEntity =
+        findMemoryPattern<CreateOverlayEntity_t>(pattern::CreateOverlayEntity);
+    real::CreateTextLabelEntity =
+        findMemoryPattern<CreateTextLabelEntity_t>(pattern::CreateTextLabelEntity);
+    real::EntitySetScaleBySize =
+        findMemoryPattern<EntitySetScaleBySize_t>(pattern::EntitySetScaleBySize);
+    real::GetFontAndScaleToFitThisLinesPerScreenY =
+        findMemoryPattern<GetFontAndScaleToFitThisLinesPerScreenY_t>(
+            pattern::GetFontAndScaleToFitThisLinesPerScreenY);
     real::DrawFilledRect = findMemoryPattern<DrawFilledRect_t>(pattern::DrawFilledRect);
     real::SurfaceCtor = findMemoryPattern<SurfaceCtor_t>(pattern::SurfaceCtor);
     real::SurfaceDtor = findMemoryPattern<SurfaceDtor_t>(pattern::SurfaceDtor);
@@ -151,32 +158,16 @@ void GameHarness::resolveRenderSigs()
         findMemoryPattern<SetupEntityIconFromItem_t>(pattern::SetupEntityIconFromItem);
 }
 
+// /!\ Out of Order!
+// This was used when osgt-qol spun the setup of mod into its own thread.
+// This would be ideally still used right now, but we need to figure out a way to draw while App
+// isn't fully initialized yet.
 static uint8_t loadScreenState = 0;
 void GameHarness::toggleLoadScreen()
 {
     // FIXME: Resolution changes from save reload will make loading screen offset and not scale.
     if (loadScreenState == 0)
     {
-        // Resolve a subset of functions needed here.
-        real::GetApp =
-            utils::resolveRelativeCall<GetApp_t>(findMemoryPattern<uint8_t*>(pattern::GetApp) + 4);
-        // We may have gotten here before post-init phase is done. Let's wait a bit.
-        while (!real::GetApp()->m_bDidPostInit)
-        {
-            Sleep(100);
-        }
-        real::GetScreenRect = findMemoryPattern<GetScreenRect_t>(pattern::GetScreenRect);
-        real::SetupTextEntity = findMemoryPattern<SetupTextEntity_t>(pattern::SetupTextEntity);
-        real::CreateOverlayEntity =
-            findMemoryPattern<CreateOverlayEntity_t>(pattern::CreateOverlayEntity);
-        real::CreateTextLabelEntity =
-            findMemoryPattern<CreateTextLabelEntity_t>(pattern::CreateTextLabelEntity);
-        real::EntitySetScaleBySize =
-            findMemoryPattern<EntitySetScaleBySize_t>(pattern::EntitySetScaleBySize);
-        real::GetFontAndScaleToFitThisLinesPerScreenY =
-            findMemoryPattern<GetFontAndScaleToFitThisLinesPerScreenY_t>(
-                pattern::GetFontAndScaleToFitThisLinesPerScreenY);
-        real::MainMenuCreate = findMemoryPattern<MainMenuCreate_t>(pattern::MainMenuCreate);
         // Create our loading screen, we'll opt to use an overlay entity with same style as other
         // game menus.
         loadScreenState = 1;
@@ -213,12 +204,6 @@ void GameHarness::toggleLoadScreen()
         // access violation.
         real::GetApp()->m_entityRoot->RemoveEntityByAddress(
             real::GetApp()->m_entityRoot->GetEntityByName("LoadScreenMenu"));
-
-        // Does any patch advertise having modified MainMenuCreate, we might want to call that then.
-        if (patched::MainMenuCreate)
-            patched::MainMenuCreate(real::GetApp()->m_entityRoot->GetEntityByName("GUI"), false);
-        else
-            real::MainMenuCreate(real::GetApp()->m_entityRoot->GetEntityByName("GUI"), false);
     }
     else
     {

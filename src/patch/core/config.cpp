@@ -12,15 +12,15 @@ REGISTER_GAME_FUNCTION(GetSavePath,
                        "FF FF 48 89 58 10 48 89 70 18 48 89 78 20",
                        __fastcall, std::string);
 
-REGISTER_GAME_FUNCTION(AppLoadVarDB,
-                       "4C 8B DC 53 48 81 EC B0 00 00 00 49 C7 43 80 FE FF FF FF 48 8B ? ? ? ? ? "
-                       "48 33 C4 48 89 84 24 A8 00 00 00 48 8B D9",
-                       __fastcall, void, App*);
+REGISTER_GAME_FUNCTION(
+    RemoveFile,
+    "4C 8B DC 57 48 81 EC 80 00 00 00 49 C7 43 98 FE FF FF FF 49 89 5B 10 48 8B ? ? ? ? ? 48 33 C4",
+    __fastcall, void, std::string);
 
 REGISTER_GAME_FUNCTION(InitVideo,
                        "48 89 5C 24 08 48 89 74 24 10 57 48 81 EC C0 00 00 00 48 8B ? ? ? ? ? 48 "
                        "33 C4 48 89 84 24 B0 00 00 00 E8",
-                       __fastcall, void);
+                       __fastcall, bool);
 
 REGISTER_GAME_FUNCTION(GetVideoModeManager,
                        "48 83 EC 38 48 C7 44 24 20 FE FF FF FF 48 8B ? ? ? ? ? 48 85 C0 75 31 8D "
@@ -52,10 +52,6 @@ class SaveAndLogLocationFixer : public patch::BasePatch
                 return;
         }
 
-        // We will reload the game not via VariantDB itself, but via App so it gets whatever it
-        // needs right.
-        real::AppLoadVarDB = game.findMemoryPattern<AppLoadVarDB_t>(pattern::AppLoadVarDB);
-
         // We need to reset videomode after save.dat reload.
         real::GetVideoModeManager =
             game.findMemoryPattern<GetVideoModeManager_t>(pattern::GetVideoModeManager);
@@ -69,8 +65,13 @@ class SaveAndLogLocationFixer : public patch::BasePatch
         game.hookFunctionPatternDirect<InitVideo_t>(pattern::InitVideo, InitVideo,
                                                     &real::InitVideo);
 
+        // We'll need to truncate the logfile like the client normally would. Our log location fix
+        // happens after this call, so we'll need to call it again ourselves instead.
+        real::RemoveFile = game.findMemoryPattern<RemoveFile_t>(pattern::RemoveFile);
+        real::RemoveFile("log.txt");
+
         // Since we control the save path, we can reload save.dat from our new location.
-        real::AppLoadVarDB(real::GetApp());
+        real::GetApp()->LoadVarDB();
 
         // Restore proper videomode for this save.dat
         Variant* pVariant = real::GetApp()->GetVar("savedVideoMode");
@@ -91,8 +92,7 @@ class SaveAndLogLocationFixer : public patch::BasePatch
             }
         }
 
-        // HACK / FIXME: Re-init video without reloading vardb?
-        real::AppLoadVarDB(real::GetApp());
+        InitVideo();
     }
 
     static std::string __fastcall GetSavePath()
@@ -107,12 +107,14 @@ class SaveAndLogLocationFixer : public patch::BasePatch
         return std::string(lpBuffer) + "\\";
     }
 
-    static void __fastcall InitVideo()
+    static bool __fastcall InitVideo()
     {
-        real::InitVideo();
+        bool retVal = real::InitVideo();
         auto& game = game::GameHarness::get();
         game.updateWindowHandle();
-        game.setWindowTitle("Growtopia [OSGT-QOL]");
+        game.setWindowTitle("");
+        game.setWindowModdedIcon();
+        return retVal;
     }
 };
 REGISTER_CORE_GAME_PATCH(SaveAndLogLocationFixer, save_and_log_location_fixer);

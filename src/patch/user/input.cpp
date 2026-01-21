@@ -47,9 +47,6 @@ class QuickbarHotkeys : public patch::BasePatch
             game.findMemoryPattern<ToolSelectComponentOnTouchStart_t>(
                 pattern::ToolSelectComponentOnTouchStart);
 
-        // AddWASDKeys already is invoked by game. Add our custom binds here.
-        AddCustomKeybinds();
-
         auto& inputEvents = game::InputEvents::get();
         inputEvents.m_sig_netControllerInput.connect(&NetControllerLocalOnArcadeInput);
         inputEvents.m_sig_addWasdKeys.connect(&AddCustomKeybinds);
@@ -116,9 +113,6 @@ class QuickToggleSpaceToPunch : public patch::BasePatch
         // Resolve functions we need.
         real::AddSpacebarBinding =
             game.findMemoryPattern<AddSpacebarBinding_t>(pattern::AddSpacebarBinding);
-
-        // AddWASDKeys already is invoked by game. Add our custom binds here.
-        AddCustomKeybinds();
 
         auto& inputEvents = game::InputEvents::get();
         inputEvents.m_sig_netControllerInput.connect(&NetControllerLocalOnArcadeInput);
