@@ -13,6 +13,7 @@ void setup()
     AllocConsole();
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
+    SetConsoleTitleA("osgt-qol");
 #endif
 
     auto& game = game::GameHarness::get();
@@ -25,9 +26,19 @@ void setup()
     {
         // Initialize modding APIs and load patches.
         game.initialize();
+
         // Patch out the CRC integrity check.
-        auto addr = game.findMemoryPattern<uint8_t*>("00 3B C1 75 ? 85 C9");
-        utils::nopMemory(addr + 1, 6);
+        auto crcCheckAddr = game.findMemoryPattern<uint8_t*>("00 3B C1 75 ? 85 C9");
+        utils::nopMemory(crcCheckAddr + 1, 6);
+
+        // The client will try to add restrictive ACEs to the process DACL, likely trying to prevent
+        // other processes from interacting with it in malicious ways, but it also makes it
+        // impossible to, for example, shut down the game using another unprivileged process (e.g.,
+        // by running taskkill). Annoying, patch this shit out.
+        auto daclModAddr = game.findMemoryPattern<uint8_t*>(
+            "E8 ? ? ? ? B0 01 EB 1B 4C 8D ? ? ? ? ? 33 C9 45 33 C9 48 8D ? ? ? ? ? FF 15");
+        utils::nopMemory(daclModAddr, 5);
+
         game.resolveSharedSigs();
         // game.toggleLoadScreen();
         game.setWindowModdedIcon();

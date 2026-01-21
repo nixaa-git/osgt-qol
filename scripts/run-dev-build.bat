@@ -12,14 +12,9 @@ if "%DLL_SOURCE%"=="" (
     echo Warning: No DLL_SOURCE argument provided, skipping copying
 )
 
-:: It'd be nice for this script to actually close the game, but the client seems to set restrictive ACEs on itself, and
-:: as a result elevated processes can terminate it. If this gets annoying enough, we can undo this mess in the setup 
-:: routine of dev builds. For now, just fail if the game's already running
-tasklist /FI "IMAGENAME eq Growtopia.exe" 2>NUL | find /I /N "Growtopia.exe">NUL
-if %ERRORLEVEL%==0 (
-    echo Error: Growtopia is already running. Close it first!
-    exit /b 1
-)
+echo Closing existing game process if one exists...
+taskkill /IM "Growtopia.exe" /T >NUL 2>&1
+timeout /t 1 /nobreak >NUL
 
 if not "%DLL_SOURCE%"=="" (
     echo Copying %DLL_SOURCE% to %OSGT_ROOT%\dinput8.dll
