@@ -3,6 +3,7 @@
 #include "game/struct/entity.hpp"
 #include "patch/patch.hpp"
 #include <string>
+#include <version.h>
 
 REGISTER_GAME_FUNCTION(AboutMenuAddScrollContent,
                        "48 8B C4 55 41 56 41 57 48 8D A8 F8 FB FF FF 48 81 EC F0 04", __fastcall,
@@ -66,10 +67,19 @@ class AboutMenuAttribution : public patch::BasePatch
     static std::string GetAttributionText()
     {
         auto patches = patch::PatchManager::get().getAppliedUserPatchList();
-        std::string text =
-            "\nOSGT-QOL V1.0-BETA\n`6Game modification created by `wCernodile`` and "
-            "`whouz``. There are currently `w" +
-            std::to_string(patches.size()) + "`` patches applied: ";
+
+        std::string firstLine = "\nOSGT-QOL " OSGT_QOL_DISPLAY_VERSION;
+#ifdef DEVELOPMENT
+        firstLine += " (Development Build)\n";
+#else
+        firstLine += "\n";
+#endif
+
+        std::string text = firstLine +
+                           "`6Created by `wCernodile`` and `whouz``."
+                           "\nThere are currently `w" +
+                           std::to_string(patches.size()) + "`` patches applied: ";
+
         // Create comma-separated list of patches.
         for (size_t i = 0; i < patches.size(); i++)
         {

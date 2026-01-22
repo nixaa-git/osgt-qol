@@ -1,6 +1,7 @@
 #include "game/game.hpp"
 #include "patch/patch.hpp"
 #include <string>
+#include <version.h>
 #include <windows.h>
 
 static std::once_flag isInitialized;
@@ -13,7 +14,7 @@ void createDebugConsole()
     AllocConsole();
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
-    SetConsoleTitleA("osgt-qol");
+    SetConsoleTitleA("osgt-qol " OSGT_QOL_DISPLAY_VERSION);
 }
 
 void showErrorMessageBox(const std::string& message)
@@ -26,6 +27,7 @@ void setup()
 {
 #ifdef DEVELOPMENT
     createDebugConsole();
+    std::fprintf(stderr, "OSGT-QOL " OSGT_QOL_DISPLAY_VERSION " (" OSGT_QOL_VERSION ")\n");
 #endif
 
     auto& game = game::GameHarness::get();
@@ -54,7 +56,9 @@ void setup()
         game.resolveSharedSigs();
         // game.toggleLoadScreen();
         game.setWindowModdedIcon();
-        game.setWindowTitle("Growtopia [OSGT-QOL] - Patching the game - Please wait!");
+
+        std::string versionString = "OSGT-QOL " OSGT_QOL_DISPLAY_VERSION;
+        game.setWindowTitle("Growtopia [" + versionString + "] - Patching the game - Please wait!");
         optionsMgr.initialize();
         optionsMgr.addOptionPage("qol", "OSGT-QOL Settings");
         input.initialize();
@@ -62,7 +66,7 @@ void setup()
         weatherMgr.initialize();
         patchMgr.applyPatchesFromFile("patches.txt");
         // game.toggleLoadScreen();
-        game.setWindowTitle("Growtopia [OSGT-QOL]");
+        game.setWindowTitle("Growtopia [" + versionString + "]");
         std::fprintf(stderr, "Done applying patches.\n");
     }
     catch (const std::exception& e)

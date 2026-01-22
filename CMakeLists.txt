@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
-project(osgt-qol LANGUAGES CXX C)
+# Make sure to always include the version patch number
+project(osgt-qol LANGUAGES CXX C VERSION 0.9.1)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

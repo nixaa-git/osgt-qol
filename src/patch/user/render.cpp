@@ -18,6 +18,7 @@
 #include "game/struct/variant.hpp"
 
 #include "game/struct/world/world.hpp"
+#include <version.h>
 
 // MainMenuCreate
 REGISTER_GAME_FUNCTION(
@@ -252,9 +253,11 @@ class CustomizedTitleScreen : public patch::BasePatch
         CL_Vec2f m_verLabelPos = pVerLabel->GetVar("pos2d")->GetVector2();
         CL_Vec2f m_verLabelSize = pVerLabel->GetVar("size2d")->GetVector2();
 
-        Entity* pTextLabel = real::CreateTextLabelEntity(pEnt->GetEntityByName("MainMenu"), "mltxt",
-                                                         0, m_verLabelPos.y - m_verLabelSize.y,
-                                                         "`wOSGT-QOL V1.0-BETA``");
+        std::string versionText = "`wOSGT-QOL " OSGT_QOL_DISPLAY_VERSION "``";
+        Entity* pTextLabel =
+            real::CreateTextLabelEntity(pEnt->GetEntityByName("MainMenu"), "mltxt", 0,
+                                        m_verLabelPos.y - m_verLabelSize.y, versionText);
+
         // Retrieve fontscale and scale created entity
         uint32_t fontID;
         float fontScale;
