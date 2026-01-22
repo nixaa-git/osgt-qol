@@ -73,3 +73,6 @@ Optimizes the light level calculation code for light emitters such as torches an
 
 Allows you to switch country flags with game launched without system modifications.
 +locale_switcher
+
+Fixes the broken GDPR logic on URL buttons
++fix_url_buttons

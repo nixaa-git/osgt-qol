@@ -76,6 +76,7 @@ User-facing, visible or impactful patches:
 - Legendary Wings patch - V3.02 does not render Legendary Wings at all due to an oversight, this patches the vanilla bug
 - Extended Chat Limit - Increases the chat history limit from the original 125 up to 500
 - Locale Switcher - Allows you to change your in-game country flag without having to restart your PC or game
+- URL buttons fix - Fixes the broken GDPR logic that blocks opening any URL buttons if the game cannot phone home
 
 User-facing patches that don't really impact your gameplay or are made for experimenting:
 - Light Optimization - The light calculation for Growtopia is rather inefficient, this makes the light calculation algorithm a lot more performant
