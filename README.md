@@ -1,72 +1,99 @@
 <div align="center">
 
-<img width="50%" src="src/res/logo.png" alt="OSGT-QOL logo, created by Corrects">
-<hr>
+<img width="200" src="src/res/logo.png" alt="OSGT-QOL logo, created by Corrects">
 
-# osgt-qol
+# OSGT-QOL
 </div>
 
-osgt-qol is a quality of life mod for Growtopia 3.02 64-bit Windows clients aimed at Oldschool Growtopia players. It features various quality of life and security changes along extending several limitations of the vanilla game client.
+OSGT-QOL is a quality of life mod for Growtopia 3.02 64-bit Windows clients aimed at Oldschool Growtopia players. It features various quality of life and security changes along extending several limitations of the vanilla game client.
 
 > [!NOTE]
-> This repository is provided as a Proof-of-Concept. The core maintainers of the project are currently working on a rewrite. Contributions are still very much welcome, things done here will be relevant for the rewrite.
+> The game modification is provided as a working prototype. The core maintainers of the project are working on a rewrite in another repository. Contributions are still very much welcome, things done here will be relevant for the rewrite.
 
-## Installation
-Navigate to [Releases](https://github.com/gtModLoader/osgt-qol-poc/releases) section and download the latest `osgt-qol-*.zip` package.
-Open the downloaded zip file then drag and drop `dinput8.dll` to your Growtopia installation folder.
+## Table of Contents
+- [Cache and save.dat separation](#cache-and-savedat-separation)
+- [Installation](#installation)
+- [Uninstalling](#uninstalling)
+- [What does this mod change?](#what-does-this-mod-change)
+- [Configuration](#configuration)
+- [Credits & Contributors](#credits--contributors)
 
-If you are unsure how to find your installation folder, press Windows Key + R and paste in `%LocalAppData%\Growtopia` then press Enter.
+## Cache and save.dat separation
+If you play on more than one server or play on the live servers, you may want to clone your V3.02 Growtopia installation to not have to reinstall the game and uninstall the mod each time.
 
-## Cache and save separation
-If you play more than one server or play on the live servers, you may want to clone your V3.02 Growtopia installation by pressing Windows Key + R, pasting in `%LocalAppData%`, copying Growtopia folder, pasting it and renaming the pasted folder to OSGT. You should install the dinput8.dll file only inside OSGT folder then.
+First ensure you have V3.02 installed then once you have verified your game version, press `Windows Key` + `R` and paste in `%LocalAppData%`. This will open a file explorer window, you should locate your Growtopia folder here.
 
-If you want to make a quick way to access this install of your game along your other copies, go inside the created OSGT folder, right click Growtopia.exe, select "Send to" and then "Desktop (create shortcut)". For Windows 11, you will need to select "Show more options" to see "Send to" option.
+Once you've found your Growtopia folder, make a copy of it (click on it once and press `Ctrl` + `C`, followed by `Ctrl` + `V`). Rename the created folder (typically `Growtopia - Copy` or similar depending on your system language) to `OSGT` or another folder of your liking, that is completely up to you. After you have cloned your install folder, you can proceed with [Installation](#installation)
+
+If you want to make a quick way to access this install of your game along your other copies, go inside the cloned folder, hold shift and right click Growtopia.exe, select "Send to" and then "Desktop (create shortcut)".
 
 Optionally, you can edit the newly created shortcut by selecting dinput8.dll for its icon, this will put the project logo as the shortcut logo.
 
+## Installation
+> [!WARNING]
+> If you play on the live Growtopia servers or any other servers and you did not follow [Cache and save.dat separation](#cache-and-savedat-separation), you will need to uninstall the mod each time you switch between other servers that do not support V3.02.
+
+Navigate to [Releases](https://github.com/gtModLoader/osgt-qol/releases) section and download the latest `osgt-qol-*.zip` package.
+
+Open the downloaded zip file then drag and drop `dinput8.dll` to your game installation folder.
+
+If you are unsure how to find your installation folder, the default install can be found by pressing `Windows Key` + `R`, then pasting in `%LocalAppData%\Growtopia` and pressing Enter.
+
+If you followed [Cache and save.dat separation](#cache-and-savedat-separation) guide, then your game installation folder is the cloned folder you made earlier.
+
 ## Uninstalling
-Open your Growtopia installation folder and delete `dinput8.dll` file.
+Open your game installation folder and delete `dinput8.dll` file.
 
-## Configuration
-Currently, if you wish to disable any specific mod, you will need to download the [patches.txt](https://raw.githubusercontent.com/gtModLoader/osgt-qol-poc/refs/heads/main/patches.txt) file from this repository and place it in the same folder as the mod.
-By default, without this file, osgt-qol will enable all of the built-in mods.
+## What does this mod change?
+OSGT-QOL comes with several embedded game modifications, some of which can be disabled, others which can be toggled by the patches.txt file (see [Configuration](#configuration)).
 
-## Features
-osgt-qol divides its mods into two primary categories, core patches and user patches. Core patches cannot be disabled and are always enabled.
-User patches may be disabled via patches.txt file.
-
-Core Patches:
+Core Patches (always enabled):
 - CRC Integrity Check bypass - Required for code modification to work
+- No DACL Modifications - Removes restrictive ACEs applied to the game, which allows for other programs/scripts to interact with the game without needing Administrator privileges
 - About Menu attribution - Adds credits for the modification & lists all the loaded in user patches
 - Secure Item Manager - Scans to-be-downloaded files for path traversal attempts, stopping & warning the user on detection
 - Save & Log Location Fixer - Loads save.dat from current working directory and sends game logs to log.txt residing in current working directory
 
-User Patches:
+User-facing, most notable/impactful patches:
 - Framerate Unlock patch - Adjusts the game's framerate limit to match the users display refresh rate. Additionally fixes some visuals caused by higher FPS
 - Audio stuttering patch - Forces the game to stream all audio files from disk rather than try load in memory. Playback from memory is broken on Proton's AudioManager FMOD backend
+- Server Switcher - You can now connect to any server that supports V3.02 without modifying hosts file with this mod
+- Cache Location Fixer - Binds game's cache folder to the same folder game installation is on. Useful for people that have multiple Growtopia installations
+- Live GUI rebuilder - You can switch between resolutions and fullscreen without disconnecting from the server
+- Status Effects Overlay - Showcases active status effects with timers on your character just below the chat
+
+User-facing, visible or impactful patches:
 - Legacy Chat patch - Removes the chat update paddings, chat tabs and `[S]` symbols
 - No Guild Icon - Shifts Gem Store margin up to be next to Friends List
 - Customized Title Screen - Changes the eye-searing sunny weather on title screen to a cozy night weather & adds OSGT-QOL watermark
-- Server Switcher - You can now connect to various servers without modifying hosts file with this mod
-- Cache Location Fixer - Binds game's cache folder to the same folder game installation is on. Useful for people that have multiple Growtopia installations.
 - Bubble Opacity Slider - Backport of the modern client bubble opacity feature
+- Hide my GUI - Adds a new keybind (CTRL+H) to toggle the clickability of GameMenu's rightmost buttons. You can also change the opacity (up to fully transparent) within in-game settings
 - Hotkey patch - Adds hotkeys number 1 through 3 to cycle through your inventory's quickbar
+- Quick Toggle Space to Punch - If you like to parkour using spacebar, but also like punching with spacebar, this patch adds Ctrl+P hotkey to toggle between them
 - Start Music Slider - Backport of modern client Start Music volume slider, your ears will thank you
 - Old Checkboxes - Removes the odd spacing introduced in version V2.997 on checkboxes
-- Live GUI rebuilder - You can switch between resolutions and fullscreen without disconnecting from the server.
-- Da Vinci Fake ID - Masquerades any instance of old Da Vinci Wings to the newer one so it would render properly.
-- Legendary Wings patch - V3.02 does not render Legendary Wings at all due to an oversight, this patches the vanilla bug.
-- Light Optimization - The light calculation for Growtopia is rather inefficient, this makes the light calculation algorithm a lot more performant.
-- Playmod Overlay - Showcases active mods with timers on your character just below the chat.
-- Allow releasing mutex - The game no longer runs into an integrity error when releasing mutex with external tools.
-- Handle old logon handshakes - Allows the V3.02 to accept all historical logon handshake packets.
-- Extended Chat Limit - Increases the chat history limit from the original 125 up to 500.
-- Locale Switcher - Allows you to change your in-game country flag without having to restart your PC or game.
+- Da Vinci Fake ID - Masquerades any instance of old Da Vinci Wings to the newer one so it would render properly
+- Legendary Wings patch - V3.02 does not render Legendary Wings at all due to an oversight, this patches the vanilla bug
+- Extended Chat Limit - Increases the chat history limit from the original 125 up to 500
+- Locale Switcher - Allows you to change your in-game country flag without having to restart your PC or game
+
+User-facing patches that don't really impact your gameplay or are made for experimenting:
+- Light Optimization - The light calculation for Growtopia is rather inefficient, this makes the light calculation algorithm a lot more performant
+- Allow releasing mutex - The game no longer runs into an integrity error when releasing mutex with external tools
+- Items.dat CrashMeNot - Makes the game not crash on items.dat versions up to 21. This does not store the information anywhere, only seeks through it
+- Handle old logon handshakes - Allows the V3.02 to accept all historical logon handshake packets
+
+
+## Configuration
+Currently, if you wish to disable any specific mod, you will need to download the [patches.txt](https://raw.githubusercontent.com/gtModLoader/osgt-qol/refs/heads/main/patches.txt) file from this repository and place it in the same folder as the mod.
+By default, without this file, OSGT-QOL will enable all of the built-in mods.
+
+To disable a mod, add a `-` at the start of a mod's name (for example `+my_mod` should become `-+my_mod`)
 
 ## Recommended additions
 When Growtopia switched to using BGFX as its rendering framework, Windows clients started using DirectX9 as opposed to OpenGL. With this transition, several visuals broke.
 You may be interested in installing [dxvk](https://github.com/doitsujin/dxvk) as it resolves some of the blending issues (most notably Sunset/beach weather).
 
 ## Credits / Contributors
-- cernodile - creating the contents and logic of patches used in osgt-qol, reverse engineering client structures and classes
-- houzeyhoo - creating the underlying patch framework
+- cernodile - creating the contents and logic of patches used in OSGT-QOL, reverse engineering client structures and classes
+- houzeyhoo - creating the underlying patch framework, build system
