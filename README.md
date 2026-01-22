@@ -45,7 +45,7 @@ If you followed [Cache and save.dat separation](#cache-and-savedat-separation) g
 Open your game installation folder and delete `dinput8.dll` file.
 
 ## What does this mod change?
-OSGT-QOL comes with several embedded game modifications, some of which can be disabled, others which can be toggled by the patches.txt file (see [Configuration](#configuration)).
+OSGT-QOL comes with several embedded game modifications, some of which can't be disabled, others which can be toggled by the patches.txt file (see [Configuration](#configuration)).
 
 Core Patches (always enabled):
 - CRC Integrity Check bypass - Required for code modification to work
@@ -82,7 +82,7 @@ User-facing patches that don't really impact your gameplay or are made for exper
 - Allow releasing mutex - The game no longer runs into an integrity error when releasing mutex with external tools
 - Items.dat CrashMeNot - Makes the game not crash on items.dat versions up to 21. This does not store the information anywhere, only seeks through it
 - Handle old logon handshakes - Allows the V3.02 to accept all historical logon handshake packets
-
+- Blood Moon Demo Weather - An experimental extension to game that adds a completely new weather to the game without replacing any existing weather.
 
 ## Configuration
 Currently, if you wish to disable any specific mod, you will need to download the [patches.txt](https://raw.githubusercontent.com/gtModLoader/osgt-qol/refs/heads/main/patches.txt) file from this repository and place it in the same folder as the mod.
@@ -90,7 +90,7 @@ By default, without this file, OSGT-QOL will enable all of the built-in mods.
 
 To disable a mod, add a `-` at the start of a mod's name (for example `+my_mod` should become `-+my_mod`)
 
-## Recommended additions
+## Recommended additions (for technical users)
 When Growtopia switched to using BGFX as its rendering framework, Windows clients started using DirectX9 as opposed to OpenGL. With this transition, several visuals broke.
 You may be interested in installing [dxvk](https://github.com/doitsujin/dxvk) as it resolves some of the blending issues (most notably Sunset/beach weather).
 
