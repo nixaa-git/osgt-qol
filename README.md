@@ -97,4 +97,4 @@ You may be interested in installing [dxvk](https://github.com/doitsujin/dxvk) as
 
 ## Credits / Contributors
 - cernodile - creating the contents and logic of patches used in OSGT-QOL, reverse engineering client structures and classes
-- houzeyhoo - creating the underlying patch framework, build system
+- houzeyhoo - creating the underlying patch framework, build system, and other minor improvements
