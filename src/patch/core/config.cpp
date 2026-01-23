@@ -36,6 +36,11 @@ REGISTER_GAME_FUNCTION(
     "50 FE FF FF FF 48 89 9C 24 F0 01 00 00 48 8B ? ? ? ? ? 48 33 C4 48 89 85 90 00 00 00 45 0F B6",
     __fastcall, void, void*, EntityComponent* pComp, bool, bool);
 
+REGISTER_GAME_FUNCTION(VideoModeManagerSetFullscreenMode,
+                       "40 53 48 83 EC 30 48 8B D9 E8 ? ? ? ? 48 8B C8 E8 ? ? ? ? 84 C0",
+                       __fastcall, void, VideoModeManager*);
+
+static bool g_wndProcWMSizeDone = false;
 class SaveAndLogLocationFixer : public patch::BasePatch
 {
   public:
@@ -61,6 +66,9 @@ class SaveAndLogLocationFixer : public patch::BasePatch
             game.findMemoryPattern<GetVideoModeManager_t>(pattern::GetVideoModeManager);
         real::VideoModeManagerSetVideoMode = game.findMemoryPattern<VideoModeManagerSetVideoMode_t>(
             pattern::VideoModeManagerSetVideoMode);
+        real::VideoModeManagerSetFullscreenMode =
+            game.findMemoryPattern<VideoModeManagerSetFullscreenMode_t>(
+                pattern::VideoModeManagerSetFullscreenMode);
 
         // We also need to rearm gamepad stuff when InitVideo is called.
         real::GamepadConnectToArcadeComponent =
@@ -83,10 +91,18 @@ class SaveAndLogLocationFixer : public patch::BasePatch
         real::GetApp()->LoadVarDB();
 
         // Also set sfx/music vols since they don't get assigned to AudioManager
-        real::GetAudioManager()->SetMusicVol(real::GetApp()->m_sharedDB.GetVarWithDefault("music_vol", 1.0f)->GetFloat());
-        real::GetAudioManager()->m_defaultVol = real::GetApp()->m_sharedDB.GetVarWithDefault("sfx_vol", 1.0f)->GetFloat();
+        real::GetAudioManager()->SetMusicVol(
+            real::GetApp()->m_sharedDB.GetVarWithDefault("music_vol", 1.0f)->GetFloat());
+        real::GetAudioManager()->m_defaultVol =
+            real::GetApp()->m_sharedDB.GetVarWithDefault("sfx_vol", 1.0f)->GetFloat();
 
-        // Restore proper videomode for this save.dat
+        // Restore proper videomode for this save.dat if not fullscreen
+        if (real::GetApp()->GetVar("fullscreen")->GetUINT32() == 0)
+            fixVideoMode();
+    }
+
+    static void fixVideoMode()
+    {
         Variant* pVariant = real::GetApp()->GetVar("savedVideoMode");
         if (pVariant->GetType() == Variant::TYPE_STRING)
         {
@@ -104,8 +120,6 @@ class SaveAndLogLocationFixer : public patch::BasePatch
                 printf("Couldn't find vidmode, may be a new save, ignoring...\n");
             }
         }
-
-        InitVideo();
     }
 
     static std::string __fastcall GetSavePath()
@@ -122,6 +136,15 @@ class SaveAndLogLocationFixer : public patch::BasePatch
 
     static bool __fastcall InitVideo()
     {
+        if (!g_wndProcWMSizeDone)
+        {
+            printf("wndProc likely called InitVideo with its own videomode, restoring old one...\n");
+            g_wndProcWMSizeDone = true;
+            if (real::GetApp()->GetVar("fullscreen")->GetUINT32() == 1)
+                real::VideoModeManagerSetFullscreenMode(real::GetVideoModeManager());
+            else
+                fixVideoMode();
+        }
         bool retVal = real::InitVideo();
         auto& game = game::GameHarness::get();
         game.updateWindowHandle();
