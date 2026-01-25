@@ -53,6 +53,13 @@ void setup()
             "E8 ? ? ? ? B0 01 EB 1B 4C 8D ? ? ? ? ? 33 C9 45 33 C9 48 8D ? ? ? ? ? FF 15");
         utils::nopMemory(daclModAddr, 5);
 
+        // Patch out FilterInputComponent::OnInput absolutely horrendous log spam caused by
+        // `LogMsg("");` - can be potential cause of some microstutters.
+        auto filterInputLogAddr =
+            game.findMemoryPattern<uint8_t*>("E8 ? ? ? ? 48 C7 44 24 78 0F 00 00 00 48 C7 44 24 70 "
+                                             "00 00 00 00 C6 44 24 60 00 41 B8 05");
+        utils::nopMemory(filterInputLogAddr, 5);
+
         game.resolveSharedSigs();
         // game.toggleLoadScreen();
         game.setWindowModdedIcon();
