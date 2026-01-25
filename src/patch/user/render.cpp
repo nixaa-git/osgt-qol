@@ -559,10 +559,18 @@ class HideMyUI : public patch::BasePatch
         Entity* pCheckbox = pVariant->Get(1).GetEntity();
         bool bChecked = pCheckbox->GetVar("checked")->GetUINT32() != 0;
         real::GetApp()->GetVar("hide_ui_scrollers")->Set(uint32_t(bChecked));
-        if (bChecked)
-            SetSlidersOpacity(real::GetApp()->GetVar("hide_ui_opacity")->GetFloat());
-        else
-            SetSlidersOpacity(1.00f);
+        Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
+        Entity* pMenu = pGUI->GetEntityByName("WorldSpecificGUI")->GetEntityByName("GameMenu");
+        if (pMenu != nullptr)
+        {
+            if (!pMenu->GetEntityByName("MENU")->GetComponentByName("TouchHandler"))
+            {
+                if (bChecked)
+                    SetSlidersOpacity(real::GetApp()->GetVar("hide_ui_opacity")->GetFloat());
+                else
+                    SetSlidersOpacity(1.00f);
+            }
+        }
     }
 
     static void __fastcall OnArcadeInput(VariantList* pVL)
