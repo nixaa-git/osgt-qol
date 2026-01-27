@@ -28,6 +28,7 @@ set(SOURCES_USER_PATCHES
     patch/user/framerate.cpp
     patch/user/input.cpp
     patch/user/items.cpp
+    patch/user/misc.cpp
     patch/user/net.cpp
     patch/user/render.cpp
     patch/user/playmodoverlay.cpp

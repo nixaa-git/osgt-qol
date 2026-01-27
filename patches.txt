@@ -79,3 +79,6 @@ Fixes the broken GDPR logic on URL buttons
 
 Adds a toggle for ctrl to jump
 +toggle_ctrl_jump
+
+Removes "Secure my Account" prompt in Pause Menu
++pause_menu_no_aap
