@@ -138,3 +138,42 @@ class StartMusicSliderBackport : public patch::BasePatch
     }
 };
 REGISTER_USER_GAME_PATCH(StartMusicSliderBackport, start_music_slider_backport);
+
+class AudioMuteFix : public patch::BasePatch
+{
+    void apply() const override
+    {
+        // Lets tap onto music_vol changes and force AudioManager to shut up about music when it
+        // doesn't have to play it.
+        real::GetApp()->GetVar("music_vol")->GetSigOnChanged()->connect(onMusicVolChanged);
+
+        if (real::GetApp()->GetVar("music_vol")->GetFloat() <= 0.00f)
+            real::GetAudioManager()->SetMusicEnabled(false);
+    }
+
+    static void onMusicVolChanged(Variant* pVariant)
+    {
+        if (!real::GetAudioManager()->m_bMusicEnabled && pVariant->GetFloat() > 0.00f)
+        {
+            // Re-enable. Set music state enabled, set volume BEFORE playing and then play. This
+            // will then chain with StartMusicSliderBackport when enabled as well since
+            // AudioManagerFMODPlay is hooked by it.
+            if (real::GetAudioManager()->m_lastPlayedTrack != "")
+            {
+                real::GetAudioManager()->m_bMusicEnabled = true;
+                real::GetAudioManager()->SetMusicVol(pVariant->GetFloat());
+                real::GetAudioManager()->Play(real::GetAudioManager()->m_lastPlayedTrack,
+                                              real::GetAudioManager()->m_bLastMusicLooping, true,
+                                              false, true);
+            }
+        }
+        else if (real::GetAudioManager()->m_bMusicEnabled && pVariant->GetFloat() <= 0.00f)
+        {
+            // Silence the music channel and mark that we do not wish to hear any music.
+            // AudioManager will still save the filename and looping status.
+            real::GetAudioManager()->SetMusicVol(0.00f);
+            real::GetAudioManager()->SetMusicEnabled(false);
+        }
+    }
+};
+REGISTER_USER_GAME_PATCH(AudioMuteFix, audio_mute_fix);

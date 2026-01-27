@@ -16,7 +16,7 @@ class AudioManagerFMOD : public AudioManager
     virtual void vfunction6();
     virtual void Preload(std::string fName, bool bLooping = false, bool bIsMusic = false,
                          bool bAddBasePath = true, bool bForceStreaming = false);
-    virtual void vfunction8();
+    virtual void SetMusicEnabled(bool bNew);
     virtual void vfunction9();
     virtual void vfunction10();
     virtual void vfunction11();

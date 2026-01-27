@@ -61,6 +61,7 @@ User-facing, most notable/impactful patches:
 - Cache Location Fixer - Binds game's cache folder to the same folder game installation is on. Useful for people that have multiple Growtopia installations
 - Live GUI rebuilder - You can switch between resolutions and fullscreen without disconnecting from the server
 - Status Effects Overlay - Showcases active status effects with timers on your character just below the chat
+- Music mute fix - Allows you to mute music volume without game inherting sfx volume instead for it - does come with drawback that unmuting will start the last played track from start, but it's far better than V3.02 default behaviour
 
 User-facing, visible or impactful patches:
 - Legacy Chat patch - Removes the chat update paddings, chat tabs and `[S]` symbols
