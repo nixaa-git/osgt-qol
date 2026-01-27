@@ -79,6 +79,7 @@ User-facing, visible or impactful patches:
 - URL buttons fix - Fixes the broken GDPR logic that blocks opening any URL buttons if the game cannot phone home
 - ToggleCtrlJump - Adds a toggle to remove CTRL to Jump control
 - Pause Menu No AAP - Removes "Secure my Account" button in Pause Menu, given the target audience of the mod, this mod makes sense for restoring visual identity. Can be toggled on the fly in OSGT-QOL Settings.
+- Handle drag fix - Fixes the misinput that causes the chat or inventory to bounce back for grab handles that happens when you release their hold too fast
 
 User-facing patches that don't really impact your gameplay or are made for experimenting:
 - Light Optimization - The light calculation for Growtopia is rather inefficient, this makes the light calculation algorithm a lot more performant

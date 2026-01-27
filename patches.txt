@@ -82,3 +82,6 @@ Adds a toggle for ctrl to jump
 
 Removes "Secure my Account" prompt in Pause Menu
 +pause_menu_no_aap
+
+Fixes the "bouncyness" of chat and inventory grab handles if you release them fast
++fix_handle_drag

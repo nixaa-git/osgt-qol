@@ -26,6 +26,28 @@ REGISTER_GAME_FUNCTION(
     "? ? ? 48 33 C4 48 89 44 24 50 48 8B E9 49 89 4B C0 49 C7 43 E0 0F 00 00 00",
     __fastcall, void, std::string);
 
+REGISTER_GAME_FUNCTION(
+    OpenLogConsole,
+    "48 8B C4 55 57 41 56 48 8D 68 A1 48 81 EC D0 00 00 00 48 C7 45 D7 FE FF FF FF 48 89 58 10",
+    __fastcall, void, VariantList*);
+REGISTER_GAME_FUNCTION(OnLogGrabEnd,
+                       "48 8B C4 55 48 8B EC 48 83 EC 70 48 C7 45 C0 FE FF FF FF 48 89 58 08",
+                       __fastcall, void, VariantList*);
+REGISTER_GAME_FUNCTION(OnLogGrabMove,
+                       "40 53 48 83 EC 30 48 8D 59 48 C6 05 ? ? ? ? ? 83 3B 00 75 1D", __fastcall,
+                       void, VariantList*);
+REGISTER_GAME_FUNCTION(OnInventoryTapToggle,
+                       "48 8B C4 55 48 8D 68 A1 48 81 EC A0 00 00 00 48 C7 45 07 FE FF FF FF",
+                       __fastcall, void, VariantList*);
+REGISTER_GAME_FUNCTION(OnInventoryGrabMove,
+                       "48 8B C4 55 48 8B EC 48 81 EC 80 00 00 00 48 C7 45 B0 FE FF FF FF 48 89 58 "
+                       "10 48 89 70 18 48 89 78 20 0F 29 70 E8",
+                       __fastcall, void, VariantList*);
+REGISTER_GAME_FUNCTION(OnInventoryGrabEnd,
+                       "48 8B C4 55 48 8D 68 A1 48 81 EC A0 00 00 00 48 C7 45 EF FE FF FF FF 48 89 "
+                       "58 10 48 89 70 18 48 89 78 20",
+                       __fastcall, void, VariantList*);
+
 // For grouping info about iPadMapX(...) calls.
 struct iPadMapXCallData
 {
@@ -170,8 +192,8 @@ class ChatLimitExtended : public patch::BasePatch
             pVariant->Set(uint32_t(1));
 
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addCheckboxOption("qol", "UI", "osgt_qol_extend_console", "Extend chat history limit to 500",
-                                     &OnChatLimitCallback);
+        optionsMgr.addCheckboxOption("qol", "UI", "osgt_qol_extend_console",
+                                     "Extend chat history limit to 500", &OnChatLimitCallback);
         SetConsoleLogLimit();
     }
 
@@ -190,3 +212,121 @@ class ChatLimitExtended : public patch::BasePatch
     }
 };
 REGISTER_USER_GAME_PATCH(ChatLimitExtended, chat_limit_extended);
+
+static bool gIsUserDrag;
+static unsigned int gStartedDrag = 0;
+class FixHandleDrag : public patch::BasePatch
+{
+    void apply() const override
+    {
+        // This fixes the chat and inventory "grab" bouncing when releasing them too fast by adding
+        // a forced 1ms "hold" time when moving the handles before the value is cleared.
+        // We also determine any move done as "under 5ms" as not hold. Maybe that value should be
+        // tweaked still, who knows!
+        // Since you can interact with one GUI element at a time, we're reusing the timer variables
+        // for both.
+        // TODO: Make toggleable in-game maybe?
+        auto& game = game::GameHarness::get();
+
+        // Chat Handles
+        game.hookFunctionPatternDirect(pattern::OpenLogConsole, OpenLogConsole,
+                                       &real::OpenLogConsole);
+        game.hookFunctionPatternDirect(pattern::OnLogGrabMove, OnLogGrabMove, &real::OnLogGrabMove);
+        game.hookFunctionPatternDirect(pattern::OnLogGrabEnd, OnLogGrabEnd, &real::OnLogGrabEnd);
+
+        // Inventory Handles
+        game.hookFunctionPatternDirect(pattern::OnInventoryTapToggle, OnInventoryTapToggle,
+                                       &real::OnInventoryTapToggle);
+        game.hookFunctionPatternDirect(pattern::OnInventoryGrabMove, OnInventoryGrabMove,
+                                       &real::OnInventoryGrabMove);
+        game.hookFunctionPatternDirect(pattern::OnInventoryGrabEnd, OnInventoryGrabEnd,
+                                       &real::OnInventoryGrabEnd);
+    }
+
+    // CHAT HANDLES
+    static void __fastcall OpenLogConsole(VariantList* pVL)
+    {
+        // Block if we haven't released the lock yet. This causes the automatic sliding to occur.
+        if (gIsUserDrag)
+            return;
+        real::OpenLogConsole(pVL);
+    }
+    static void __fastcall OnLogGrabMove(VariantList* pVL)
+    {
+        // Set game MS timer as our anchor point and lock OpenLogConsole.
+        if (gStartedDrag == 0)
+        {
+            gStartedDrag = real::GetApp()->m_gameTimer.m_timeMS;
+            gIsUserDrag = true;
+        }
+        real::OnLogGrabMove(pVL);
+    }
+    static void __fastcall OnLogGrabEnd(VariantList* pVL)
+    {
+        real::OnLogGrabEnd(pVL);
+        // If we didn't even send any move events or we spent less than 5ms holding, treat it as a
+        // click.
+        if ((real::GetApp()->m_gameTimer.m_timeMS - gStartedDrag) < 5 || gStartedDrag == 0)
+        {
+            gIsUserDrag = false;
+            gStartedDrag = 0;
+        }
+        else
+        {
+            // Add a callable function to the handle to release gIsUserDrag and gStartedDrag values.
+            if (!pVL->Get(1).GetEntity()->GetShared()->GetFunctionIfExists("OnFlipUserDrag"))
+                pVL->Get(1)
+                    .GetEntity()
+                    ->GetFunction("OnFlipUserDrag")
+                    ->sig_function.connect(OnEndFlipUserDrag);
+            real::MessageManagerCallEntityFunction(real::GetMessageManager(),
+                                                   pVL->Get(1).GetEntity(), 1, "OnFlipUserDrag",
+                                                   nullptr, 0);
+        }
+    }
+
+    // INVENTORY HANDLES
+    static void __fastcall OnInventoryTapToggle(VariantList* pVL)
+    {
+        if (gIsUserDrag)
+            return;
+        real::OnInventoryTapToggle(pVL);
+    }
+    static void __fastcall OnInventoryGrabMove(VariantList* pVL)
+    {
+        if (gStartedDrag == 0)
+        {
+            gStartedDrag = real::GetApp()->m_gameTimer.m_timeMS;
+            gIsUserDrag = true;
+        }
+        real::OnInventoryGrabMove(pVL);
+    }
+    static void __fastcall OnInventoryGrabEnd(VariantList* pVL)
+    {
+        real::OnInventoryGrabEnd(pVL);
+        if ((real::GetApp()->m_gameTimer.m_timeMS - gStartedDrag) < 5 || gStartedDrag == 0)
+        {
+            gIsUserDrag = false;
+            gStartedDrag = 0;
+        }
+        else
+        {
+            if (!pVL->Get(1).GetEntity()->GetShared()->GetFunctionIfExists("OnFlipUserDrag"))
+                pVL->Get(1)
+                    .GetEntity()
+                    ->GetFunction("OnFlipUserDrag")
+                    ->sig_function.connect(OnEndFlipUserDrag);
+            real::MessageManagerCallEntityFunction(real::GetMessageManager(),
+                                                   pVL->Get(1).GetEntity(), 1, "OnFlipUserDrag",
+                                                   nullptr, 0);
+        }
+    }
+
+    // SHARED
+    static void OnEndFlipUserDrag(VariantList* pVL)
+    {
+        gIsUserDrag = false;
+        gStartedDrag = 0;
+    }
+};
+REGISTER_USER_GAME_PATCH(FixHandleDrag, fix_handle_drag);
