@@ -23,6 +23,8 @@ class GameLogicComponent : public EntityComponent
     uint8_t pad4[24];
     uint8_t m_effectManager[24];
 
-    uint8_t pad5[300];
+    uint8_t pad5[176];
+    bool m_activeGuildEvent;
+    uint8_t pad6[127];
 };
 static_assert(sizeof(GameLogicComponent) == 880, "GameLogicComponent class size mismatch.");

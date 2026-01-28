@@ -48,11 +48,13 @@ class App : public BaseApp
     VariantDB m_sharedDB;
     uint8_t pad4[440]; // Unidentified
     std::string m_cachePath;
-    uint8_t pad5[100]; // Unidentified
+    uint8_t pad5[56]; // Unidentified
+    int m_serverProtocol;
+    uint8_t pad6[40];
     int m_playerGDPRState;
     int m_playerAge;
     // +4840 - Seems to be some bool as well
-    uint8_t pad6[140]; // Unidentified
+    uint8_t pad7[140]; // Unidentified
     // +4873 - Unidentified bool
 };
 static_assert(sizeof(App) == 4976, "App class size mismatch.");

@@ -1,5 +1,6 @@
 #include "game/game.hpp"
 #include "game/signatures.hpp"
+#include "game/struct/components/gamelogic.hpp"
 #include "patch/patch.hpp"
 #include "utils/utils.hpp"
 #include <cstddef>
@@ -25,6 +26,10 @@ REGISTER_GAME_FUNCTION(
     "4C 8B DC 57 48 83 EC 60 49 C7 43 B8 FE FF FF FF 49 89 5B 10 49 89 6B 18 49 89 73 20 48 8B ? ? "
     "? ? ? 48 33 C4 48 89 44 24 50 48 8B E9 49 89 4B C0 49 C7 43 E0 0F 00 00 00",
     __fastcall, void, std::string);
+
+REGISTER_GAME_FUNCTION(AddMainMenuControls,
+                       "48 8B C4 55 41 54 41 55 41 56 41 57 48 8D A8 18 FA FF FF", __fastcall, void,
+                       Entity*);
 
 REGISTER_GAME_FUNCTION(
     OpenLogConsole,
@@ -174,11 +179,28 @@ class NoGuildIconPatch : public patch::BasePatch
     {
         auto& game = game::GameHarness::get();
         // Remove the guild/leaderboards icon from MainMenuControls.
-        // This patch nops the ADDSS instructions responsible for offsetting the gems counter.
+        // This patch spoofs the protocol version when there is no active event.
         // As a result, the gem counter is back on its legacy positioning.
-        auto addr =
-            game.findMemoryPattern<uint8_t*>("E8 ? ? ? ? F3 0F 58 78 04 F3 0F 58 F7 F3 0F 10");
-        utils::nopMemory(addr + 5, 9);
+        game.hookFunctionPatternDirect(pattern::AddMainMenuControls, AddMainMenuControls,
+                                       &real::AddMainMenuControls);
+    }
+
+    static void __fastcall AddMainMenuControls(Entity* pEnt)
+    {
+        // nit: If the server supports toggles EventUI on the fly, then this will make it not appear
+        // until GameMenu is recreated, not a problem for OSGT though. You'd probably have to hook
+        // GameLogicComponent::OnClashEventIsActiveChanged to do anything about it.
+        // Alternate solution: Patch size2d of EVENTS entity to be 0/0 and move GemsBux when needed.
+        if (!real::GetApp()->GetGameLogic()->m_activeGuildEvent)
+        {
+            int originalProtocol = real::GetApp()->m_serverProtocol;
+            // The check is `0x23 < GetApp()->m_serverProtocol`, so we'll just spoof to skip it.
+            real::GetApp()->m_serverProtocol = 0x23;
+            real::AddMainMenuControls(pEnt);
+            real::GetApp()->m_serverProtocol = originalProtocol;
+            return;
+        }
+        real::AddMainMenuControls(pEnt);
     }
 };
 REGISTER_USER_GAME_PATCH(NoGuildIconPatch, no_guild_icon);
