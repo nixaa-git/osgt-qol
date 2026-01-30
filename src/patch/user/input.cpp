@@ -90,11 +90,13 @@ class QuickbarHotkeys : public patch::BasePatch
                     // When GameMenu is constructed, so is the inventory.
                     // We fake a "touch" event on a quickbar Tool to do the item switch cleanly.
                     int ToolIndex = keyCode - m_toolSelect0;
-                    EntityComponent* pToolSelect =
-                        pGameMenu->GetEntityByName("ItemsParent")
+                    Entity* pTool = pGameMenu->GetEntityByName("ItemsParent")
                             ->GetEntityByName("ToolSelectMenu")
-                            ->GetEntityByName("Tool" + std::to_string(ToolIndex))
-                            ->GetComponentByName("ToolSelect");
+                            ->GetEntityByName("Tool" + std::to_string(ToolIndex));
+                    if (!pTool)
+                        return;
+                    EntityComponent* pToolSelect =
+                        pTool->GetComponentByName("ToolSelect");
                     real::ToolSelectComponentOnTouchStart(pToolSelect);
                 }
             }
@@ -104,6 +106,9 @@ class QuickbarHotkeys : public patch::BasePatch
 
     static void AddCustomKeybinds()
     {
+        // Map the numpad key 0 resetting to Fist/Wrench.
+        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect0", 96, 600000, 0, 0);
+
         // Map our custom keybinds for switching between quickbar slots.
         real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_ToolSelect1", 49, m_toolSelect1, 0,
                             0);
