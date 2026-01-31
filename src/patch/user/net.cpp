@@ -365,7 +365,7 @@ class LocaleSwitcher : public patch::BasePatch
         auto& optionsMgr = game::OptionsManager::get();
         optionsMgr.addMultiChoiceOptionDoubleButtons("qol", "System", "osgt_qol_localeswitch_pref",
                                                      "Locale for flag (needs re-login to apply)",
-                                                     validRegions, &LocaleSwitcherOnSelect, 180.0f);
+                                                     validRegions, &LocaleSwitcherOnSelect, 80.0f);
     }
 
     static void LocaleSwitcherOnSelect(VariantList* pVariant)

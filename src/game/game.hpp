@@ -134,6 +134,7 @@ class OptionsManager
         OptionsManager::GameOptionType type;
         std::string varName;
         std::string displayName;
+        std::string extraInfo;
         std::vector<std::string>* displayOptions;
         float vModSizeX = 0;
         void* signal;
@@ -161,18 +162,21 @@ class OptionsManager
     // Adds a slider option to end of GameOptions list.
     // varName is points to a variable in save.dat.
     // displayName is the string visible in middle of a slider option.
-    void addSliderOption(std::string varName, std::string displayName, VariantCallback pCallback)
+    void addSliderOption(std::string varName, std::string displayName, VariantCallback pCallback,
+                         std::string hintStr = "")
     {
         GameOption option;
         option.type = OPTION_SLIDER;
         option.varName = varName;
         option.displayName = displayName;
         option.signal = (void*)pCallback;
+        option.extraInfo = hintStr;
         rootOptions.push_back(option);
     }
 
     void addSliderOption(std::string page, std::string section, std::string varName,
-                         std::string displayName, VariantCallback pCallback)
+                         std::string displayName, VariantCallback pCallback,
+                         std::string hintStr = "")
     {
 #ifdef DEBUG
         if (optionPages.find(page) == optionPages.end())
@@ -187,6 +191,7 @@ class OptionsManager
         option.varName = varName;
         option.displayName = displayName;
         option.signal = (void*)pCallback;
+        option.extraInfo = hintStr;
         optionPages[page].sections[section].push_back(option);
     }
 

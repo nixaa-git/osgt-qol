@@ -204,14 +204,30 @@ void OptionsManager::renderSlider(OptionsManager::GameOption& optionDef, void* p
     // The client uses this for padding, lets do the same for consistency.
     vPosY += real::iPhoneMapY(20.0) * 2;
 
+    // We really don't want it to be smaller than vanilla 1024x768 iPhoneMapX(360.0f), but we want
+    // it to be leaner in high res.
+    float vSixeX = real::iPhoneMapX(260.0f);
+    if (vSixeX < 768.80f)
+        vSixeX = 768.80f;
+
     // The final 4 string args aren't there in Proton, but they are in client. Currently they don't
     // seem to have much use.
-    EntityComponent* pSliderComp = real::CreateSlider(pEnt, vPosX, vPosY, real::iPhoneMapX(360.0f),
-                                                      "interface/slider_button.rttex", "Min",
-                                                      optionDef.displayName, "Max", "", "", "", "");
+    EntityComponent* pSliderComp =
+        real::CreateSlider(pEnt, vPosX, vPosY, vSixeX, "interface/slider_button.rttex", "Min",
+                           optionDef.displayName, "Max", "", "", "", "");
 
-    // Lets assign parent SliderEnt a name we can identify later.
-    pSliderComp->GetParent()->GetVarWithDefault("osgt_setting", Variant(optionDef.varName));
+    CL_Vec2f vSliderSize = pSliderComp->GetParent()->GetVar("size2d")->GetVector2();
+    // If we have a hint string assigned, we'll display it below the slider, helps with centering
+    // and width issues.
+    if (optionDef.extraInfo.size() > 0)
+    {
+        Entity* pTxtEnt = real::CreateTextLabelEntity(
+            pEnt, "txt", vPosX + (vSixeX / 2), vPosY + vSliderSize.y + 25.0f, optionDef.extraInfo);
+        real::SetupTextEntity(pTxtEnt, 0, 0);
+        pTxtEnt->GetVar("alignment")->Set(5U);
+
+        vPosY += pTxtEnt->GetVar("size2d")->GetVector2().y + 25.0f;
+    }
 
     // Move the slider button according to variable in SharedDB.
     pSliderComp->GetVar("progress")->Set(real::GetApp()->GetVar(optionDef.varName)->GetFloat());
@@ -221,7 +237,7 @@ void OptionsManager::renderSlider(OptionsManager::GameOption& optionDef, void* p
             ->connect(reinterpret_cast<VariantCallback>(optionDef.signal));
 
     // Adjust margin for next option.
-    vPosY += pSliderComp->GetParent()->GetVar("size2d")->GetVector2().y;
+    vPosY += vSliderSize.y;
 }
 
 void OptionsManager::renderCheckbox(OptionsManager::GameOption& optionDef, void* pEntityPtr,
@@ -232,12 +248,8 @@ void OptionsManager::renderCheckbox(OptionsManager::GameOption& optionDef, void*
     // The client uses this for padding, lets do the same for consistency.
     vPosY += real::iPhoneMapY(20.0);
 
-    // Retrieve fontscale
-    // Note: Vanilla seems to put fontID 0 and fontScale as 1.0, but it doesn't scale... at all, so
-    // this might actually be better for UX.
-    uint32_t fontID;
-    float fontScale;
-    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 20);
+    uint32_t fontID = 0;
+    float fontScale = 1.0f;
 
     // Retrieve our variant as we need to set checkbox value as its created
     Variant* pVariant = real::GetApp()->GetVar(optionDef.varName);
@@ -276,7 +288,7 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
     // Retrieve fontscale
     uint32_t fontID;
     float fontScale;
-    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 18);
+    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 28);
 
     // Create the option label
     Entity* pOptionsLabel =
@@ -294,7 +306,7 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
     }
 
     // Re-scale for the multichoice modal itself.
-    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 20);
+    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 30);
 
     // They added some wack trailing args we don't care about to end of TextButtonEntity.
     Entity* pBackButton = real::CreateTextButtonEntity(pMCEnt, "back", vPosX, vPosY, " <<  ", false,
@@ -440,16 +452,14 @@ void OptionsManager::HandleOptionPageButton(VariantList* pVL)
     Entity* pPageLabel = real::CreateTextLabelEntity(
         pScrollChild, "title", vPosX, vPosY,
         page.fancyName.size() == 0 ? pClickedEnt->GetName() : page.fancyName);
-    real::SetupTextEntity(pPageLabel, fontID, fontScale);
+    real::SetupTextEntity(pPageLabel, fontID, 0);
     vPosY += pPageLabel->GetVar("size2d")->GetVector2().y;
-
-    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 13);
 
     for (auto& section : optionsMgr.optionPages[pClickedEnt->GetName()].sections)
     {
         Entity* pSectionLabel =
             real::CreateTextLabelEntity(pScrollChild, "section", vPosX, vPosY, section.first);
-        real::SetupTextEntity(pSectionLabel, fontID, fontScale);
+        real::SetupTextEntity(pSectionLabel, fontID, 0);
         vPosY += pSectionLabel->GetVar("size2d")->GetVector2().y;
         for (auto& option : section.second)
         {
@@ -483,6 +493,7 @@ void OptionsManager::HandleOptionPageButton(VariantList* pVL)
     real::ResizeScrollBounds(&vl);
 
     // and blit a Back button.
+    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 13);
     Entity* pBackButton = real::CreateTextButtonEntity(pOverEnt, "Back", real::iPhoneMapX(25.0),
                                                        screenRect.bottom - real::iPhoneMapY(40.0),
                                                        "Back", false, 0, "", 0, "", 1, 0);
@@ -539,9 +550,9 @@ void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, v
 
     // Create our very own label.
     Entity* pOptionsLabel = real::CreateTextLabelEntity(pScrollChild, "osgt_qol_options", vPosX,
-                                                        vPosY, "Modded Options");
+                                                        vPosY, "Modded Options:");
     // Set scaling for label.
-    real::SetupTextEntity(pOptionsLabel, fontID, fontScale);
+    real::SetupTextEntity(pOptionsLabel, fontID, 0);
 
     // Move cursor further down by label size.
     vPosY += pOptionsLabel->GetVar("size2d")->GetVector2().y + real::iPhoneMapY(10.0);

@@ -198,7 +198,7 @@ class CustomizedTitleScreen : public patch::BasePatch
         weatherMgr.m_sig_eventSubscribe.connect(&customWeatherEvent);
         // Register the Multi-Choice option
         optionsMgr.addMultiChoiceOption("qol", "UI", "osgt_qol_title_bg", "Title Background",
-                                        displayNames, &TitleBackgroundOnSelect, 180.0f);
+                                        displayNames, &TitleBackgroundOnSelect, 80.0f);
     }
 
     static void customWeatherEvent(game::WeatherManager::CustomWeatherEvent* pCustomWeather)
@@ -496,8 +496,9 @@ class HideMyUI : public patch::BasePatch
 
         auto& optionsMgr = game::OptionsManager::get();
         optionsMgr.addSliderOption("qol", "UI", "hide_ui_opacity", "Hide UI Opacity",
-                                   &HideUIOpacitySliderCallback);
-        optionsMgr.addCheckboxOption("qol", "UI", "hide_ui_scrollers", "Hide slider handles too",
+                                   &HideUIOpacitySliderCallback,
+                                   "`5(Use CTRL+H while inside a world to toggle this)``");
+        optionsMgr.addCheckboxOption("qol", "UI", "hide_ui_scrollers", "Hide chat and inventory handles too",
                                      &HideUIScrollHandlesCallback);
     }
 
@@ -787,8 +788,8 @@ class LightSourceOptimizer : public patch::BasePatch
         optionsMgr.addCheckboxOption("qol", "Performance", "osgt_qol_lightopt_enabled",
                                      "Optimize Light Emitters", &LightOptimizerToggle);
         optionsMgr.addSliderOption("qol", "Performance", "osgt_qol_lightopt_rad",
-                                   "Light Emitter Strength `a(See more at expense of fps)``",
-                                   &LightOptimizerSlider);
+                                   "Light Emitter Strength", &LightOptimizerSlider,
+                                   "`5(See more at expense of fps)``");
     }
 
     static void LightOptimizerSlider(Variant* pVariant)
