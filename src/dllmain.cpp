@@ -1,5 +1,6 @@
 #include "game/game.hpp"
 #include "patch/patch.hpp"
+#include <chrono>
 #include <string>
 #include <version.h>
 #include <windows.h>
@@ -29,6 +30,8 @@ void setup()
     createDebugConsole();
     std::fprintf(stderr, "OSGT-QOL " OSGT_QOL_DISPLAY_VERSION " (" OSGT_QOL_VERSION ")\n");
 #endif
+
+    auto startTime = std::chrono::high_resolution_clock::now();
 
     auto& game = game::GameHarness::get();
     auto& patchMgr = patch::PatchManager::get();
@@ -73,6 +76,7 @@ void setup()
         weatherMgr.initialize();
         patchMgr.applyPatchesFromFile("patches.txt");
         // game.toggleLoadScreen();
+        game.finalizeInitialization();
         game.setWindowTitle("Growtopia [" + versionString + "]");
         std::fprintf(stderr, "Done applying patches.\n");
     }
@@ -83,6 +87,11 @@ void setup()
         showErrorMessageBox(e.what());
         ExitProcess(EXIT_FAILURE);
     }
+
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    std::fprintf(stderr, "Setup completed in %lld ms\n", duration);
 }
 
 void loadOriginalDirectInput8Create()

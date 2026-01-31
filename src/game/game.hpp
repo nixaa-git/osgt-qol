@@ -61,17 +61,20 @@ class GameHarness
     // Detours function located at target address to function located at detour address. Optionally,
     // a pointer might be passed in order to store the original (undetoured) function address.
     // Throws std::runtime_error on failure.
-    template <typename F> void hookFunction(F target, F detour, F* original);
+    template <typename F>
+    void hookFunction(F target, F detour, F* original, bool hasPriority = false);
 
     // Works exactly as hookFunction, but uses an IDA-style pattern string to locate the target
     // function address. Throws std::runtime_error on failure.
     template <typename F>
-    void hookFunctionPatternDirect(const std::string& pattern, F detour, F* original);
+    void hookFunctionPatternDirect(const std::string& pattern, F detour, F* original,
+                                   bool hasPriority = false);
 
     // Works exactly as hookFunctionPatternDirect, but resolves a function call at the target
     // address in order to locate the target function address. Throws std::runtime_error on failure.
     template <typename F>
-    void hookFunctionPatternCall(const std::string& pattern, F detour, F* original);
+    void hookFunctionPatternCall(const std::string& pattern, F detour, F* original,
+                                 bool hasPriority = false);
 
     // Changes the game window title to the specified string.
     void setWindowTitle(const std::string& title);
@@ -87,6 +90,9 @@ class GameHarness
     {
         ShowWindow(window, visible ? SW_SHOW : SW_HIDE);
     }
+
+    // Enables all created function hooks
+    void finalizeInitialization();
 
     GameHarness(GameHarness const&) = delete;
     void operator=(GameHarness const&) = delete;
@@ -429,7 +435,8 @@ template <typename T> T game::GameHarness::findMemoryPattern(const std::string& 
     throw std::runtime_error("Failed to find pattern '" + pattern + "'.");
 }
 
-template <typename F> void game::GameHarness::hookFunction(F target, F detour, F* original)
+template <typename F>
+void game::GameHarness::hookFunction(F target, F detour, F* original, bool hasPriority)
 {
     MH_STATUS status = MH_CreateHook(target, detour, reinterpret_cast<void**>(original));
     if (status != MH_OK)
@@ -440,27 +447,29 @@ template <typename F> void game::GameHarness::hookFunction(F target, F detour, F
         // TODO: Fix the messages to be like they were above
         throw std::runtime_error("Failed to create hook.");
     }
-    if ((status = MH_EnableHook(target)) != MH_OK)
+    if (hasPriority)
     {
-        // auto msg = std::format("Failed to enable hook at 0x{:p} ({})", (void*)target,
-        //                        MH_StatusToString(status));
-        // throw std::runtime_error(msg);
-        // TODO: Fix the messages to be like they were above
-        throw std::runtime_error("Failed to enable hook.");
+        status = MH_EnableHook(target);
+        if (status != MH_OK)
+        {
+            throw std::runtime_error("Failed to enable hook");
+        }
     }
 }
 
 template <typename F>
-void game::GameHarness::hookFunctionPatternDirect(const std::string& pattern, F detour, F* original)
+void game::GameHarness::hookFunctionPatternDirect(const std::string& pattern, F detour, F* original,
+                                                  bool hasPriority)
 {
     auto addr = findMemoryPattern<F>(pattern);
     if (addr == nullptr)
         throw std::runtime_error("Failed to find pattern '" + pattern + "'.");
-    hookFunction<F>(addr, detour, original);
+    hookFunction<F>(addr, detour, original, hasPriority);
 }
 
 template <typename F>
-void game::GameHarness::hookFunctionPatternCall(const std::string& pattern, F detour, F* original)
+void game::GameHarness::hookFunctionPatternCall(const std::string& pattern, F detour, F* original,
+                                                bool hasPriority)
 {
     auto addr = findMemoryPattern<F>(pattern);
     if (addr == nullptr)
@@ -468,5 +477,5 @@ void game::GameHarness::hookFunctionPatternCall(const std::string& pattern, F de
     auto call = utils::resolveRelativeCall<F>(addr);
     if (call == nullptr)
         throw std::runtime_error("Failed to resolve call");
-    hookFunction<F>(call, detour, original);
+    hookFunction<F>(call, detour, original, hasPriority);
 }

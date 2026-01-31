@@ -77,10 +77,10 @@ class SaveAndLogLocationFixer : public patch::BasePatch
 
         // We will replace normal AppData path with Current Directory.
         game.hookFunctionPatternDirect<GetSavePath_t>(pattern::GetSavePath, GetSavePath,
-                                                      &real::GetSavePath);
+                                                      &real::GetSavePath, true);
         // Also hook InitVideo so we can refresh handle and title
-        game.hookFunctionPatternDirect<InitVideo_t>(pattern::InitVideo, InitVideo,
-                                                    &real::InitVideo);
+        game.hookFunctionPatternDirect<InitVideo_t>(pattern::InitVideo, InitVideo, &real::InitVideo,
+                                                    true);
 
         // We'll need to truncate the logfile like the client normally would. Our log location fix
         // happens after this call, so we'll need to call it again ourselves instead.
@@ -138,7 +138,8 @@ class SaveAndLogLocationFixer : public patch::BasePatch
     {
         if (!g_wndProcWMSizeDone)
         {
-            printf("wndProc likely called InitVideo with its own videomode, restoring old one...\n");
+            printf(
+                "wndProc likely called InitVideo with its own videomode, restoring old one...\n");
             g_wndProcWMSizeDone = true;
             if (real::GetApp()->GetVar("fullscreen")->GetUINT32() == 1)
                 real::VideoModeManagerSetFullscreenMode(real::GetVideoModeManager());

@@ -42,7 +42,8 @@ void GameHarness::setWindowTitle(const std::string& title)
 {
     if (title.size() == 0)
         setWindowTitle(lastSavedTitle);
-    else {
+    else
+    {
         SetWindowTextA(window, title.c_str());
         lastSavedTitle = title;
     }
@@ -62,6 +63,16 @@ void GameHarness::setWindowModdedIcon()
     {
         SendMessage(window, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
         SendMessage(window, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+    }
+}
+
+void GameHarness::finalizeInitialization()
+{
+    MH_STATUS status;
+    if ((status = MH_EnableHook(MH_ALL_HOOKS)) != MH_OK)
+    {
+        throw std::runtime_error("Failed to enable hooks: " +
+                                 std::string(MH_StatusToString(status)));
     }
 }
 
