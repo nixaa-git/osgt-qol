@@ -237,7 +237,8 @@ class OptionsManager
     // [<] [ displayOptions[var] ] [>]
     void addMultiChoiceOption(std::string varName, std::string displayName,
                               std::vector<std::string>& displayOptions,
-                              VariantListCallback pCallback, float vModSizeX = 0, std::string hintStr = "")
+                              VariantListCallback pCallback, float vModSizeX = 0,
+                              std::string hintStr = "")
     {
         GameOption option;
         option.type = OPTION_MULTICHOICE;
@@ -251,7 +252,8 @@ class OptionsManager
     }
     void addMultiChoiceOption(std::string page, std::string section, std::string varName,
                               std::string displayName, std::vector<std::string>& displayOptions,
-                              VariantListCallback pCallback, float vModSizeX = 0, std::string hintStr = "")
+                              VariantListCallback pCallback, float vModSizeX = 0,
+                              std::string hintStr = "")
     {
 #ifdef DEBUG
         if (optionPages.find(page) == optionPages.end())
@@ -284,7 +286,8 @@ class OptionsManager
     void addMultiChoiceOptionDoubleButtons(std::string page, std::string section,
                                            std::string varName, std::string displayName,
                                            std::vector<std::string>& displayOptions,
-                                           VariantListCallback pCallback, float vModSizeX = 0, std::string hintStr = "")
+                                           VariantListCallback pCallback, float vModSizeX = 0,
+                                           std::string hintStr = "")
     {
 #ifdef DEBUG
         if (optionPages.find(page) == optionPages.end())

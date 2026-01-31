@@ -70,7 +70,8 @@ class QuickbarHotkeys : public patch::BasePatch
             {
                 Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
                 // We don't want the key presses to happen when we can't even see our quickbar.
-                if (pGUI->GetEntityByName("OptionsMenu"))
+                if (pGUI->GetEntityByName("OptionsMenu") ||
+                    pGUI->GetEntityByName("ResolutionMenu") || pGUI->GetEntityByName("OptionsPage"))
                     return;
                 // GUI -> WorldSpecificGUI always exists. GameMenu only does when in a world.
                 Entity* pGameMenu =
@@ -134,8 +135,9 @@ class QuickToggleSpaceToPunch : public patch::BasePatch
             if (bKeyFired)
             {
                 Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
-                // We don't want the key presses to happen when we can't even see our quickbar.
-                if (pGUI->GetEntityByName("OptionsMenu"))
+                // We don't want the key presses to happen when we're still in settings.
+                if (pGUI->GetEntityByName("OptionsMenu") ||
+                    pGUI->GetEntityByName("ResolutionMenu") || pGUI->GetEntityByName("OptionsPage"))
                     return;
             }
 

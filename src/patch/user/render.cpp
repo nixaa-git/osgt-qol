@@ -498,7 +498,8 @@ class HideMyUI : public patch::BasePatch
         optionsMgr.addSliderOption("qol", "UI", "hide_ui_opacity", "Hide UI Opacity",
                                    &HideUIOpacitySliderCallback,
                                    "`5(Use CTRL+H while inside a world to toggle this)``");
-        optionsMgr.addCheckboxOption("qol", "UI", "hide_ui_scrollers", "Hide chat and inventory handles too",
+        optionsMgr.addCheckboxOption("qol", "UI", "hide_ui_scrollers",
+                                     "Hide chat and inventory handles too",
                                      &HideUIScrollHandlesCallback);
     }
 
@@ -586,7 +587,8 @@ class HideMyUI : public patch::BasePatch
                 return;
 
             Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
-            if (pGUI->GetEntityByName("OptionsMenu") || pGUI->GetEntityByName("OptionsPage"))
+            if (pGUI->GetEntityByName("OptionsMenu") || pGUI->GetEntityByName("ResolutionMenu") ||
+                pGUI->GetEntityByName("OptionsPage"))
                 return;
             // GUI -> WorldSpecificGUI always exists. GameMenu only does when in a world.
             Entity* pMenu = pGUI->GetEntityByName("WorldSpecificGUI")->GetEntityByName("GameMenu");

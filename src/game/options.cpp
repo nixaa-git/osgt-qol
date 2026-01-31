@@ -588,7 +588,7 @@ void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, v
     CL_Vec2f vParentalPos = pParentalSettings->GetVar("pos2d")->GetVector2();
     Entity* pButtonEnt = real::CreateTextButtonEntity(
         pScrollChild, "JumpButton", vPosX + vParentalSize.x + real::iPadMapX(40.0f),
-        vParentalPos.y + real::iPadMapX(10.0f), "Jump to Bottom", false, 0, "", 0, "", 1, 0);
+        vParentalPos.y + real::iPadMapY(10.0f), "Jump to Bottom", false, 0, "", 0, "", 1, 0);
     real::SetupTextEntity(pButtonEnt, fontID, fontScale);
     real::AddBMPRectAroundEntity(pButtonEnt, 0xfbe3a5ff, 0xfbe3a5ff, real::iPadMapX(5.0), true,
                                  fontScale, fontID, false);
