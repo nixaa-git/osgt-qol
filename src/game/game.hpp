@@ -237,7 +237,7 @@ class OptionsManager
     // [<] [ displayOptions[var] ] [>]
     void addMultiChoiceOption(std::string varName, std::string displayName,
                               std::vector<std::string>& displayOptions,
-                              VariantListCallback pCallback, float vModSizeX = 0)
+                              VariantListCallback pCallback, float vModSizeX = 0, std::string hintStr = "")
     {
         GameOption option;
         option.type = OPTION_MULTICHOICE;
@@ -246,11 +246,12 @@ class OptionsManager
         option.displayOptions = &displayOptions;
         option.signal = (void*)pCallback;
         option.vModSizeX = vModSizeX;
+        option.extraInfo = hintStr;
         rootOptions.push_back(option);
     }
     void addMultiChoiceOption(std::string page, std::string section, std::string varName,
                               std::string displayName, std::vector<std::string>& displayOptions,
-                              VariantListCallback pCallback, float vModSizeX = 0)
+                              VariantListCallback pCallback, float vModSizeX = 0, std::string hintStr = "")
     {
 #ifdef DEBUG
         if (optionPages.find(page) == optionPages.end())
@@ -276,13 +277,14 @@ class OptionsManager
         option.displayOptions = &displayOptions;
         option.signal = (void*)pCallback;
         option.vModSizeX = vModSizeX;
+        option.extraInfo = hintStr;
         optionPages[page].sections[section].push_back(option);
     }
 
     void addMultiChoiceOptionDoubleButtons(std::string page, std::string section,
                                            std::string varName, std::string displayName,
                                            std::vector<std::string>& displayOptions,
-                                           VariantListCallback pCallback, float vModSizeX = 0)
+                                           VariantListCallback pCallback, float vModSizeX = 0, std::string hintStr = "")
     {
 #ifdef DEBUG
         if (optionPages.find(page) == optionPages.end())
@@ -308,6 +310,7 @@ class OptionsManager
         option.displayOptions = &displayOptions;
         option.signal = (void*)pCallback;
         option.vModSizeX = vModSizeX;
+        option.extraInfo = hintStr;
         optionPages[page].sections[section].push_back(option);
     }
 
@@ -324,6 +327,7 @@ class OptionsManager
     static void renderMultiChoice(OptionsManager::GameOption& optionDef, void* pEntPtr, float vPosX,
                                   float& vPosY);
     static void HandleOptionPageButton(VariantList* pVL);
+    static void HandleOptionPageScrollButton(VariantList* pVL);
 
     // Fastcalls used in hooks
     static void __fastcall OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, void* unk4);

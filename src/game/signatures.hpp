@@ -3,7 +3,6 @@
 #include "game/struct/audiomanagerfmod.hpp"
 #include "game/struct/gamepadmanager.hpp"
 
-
 #define DEFINE_GAME_FUNCTION(name, conv, ret, ...)                                                 \
     using name##_t = ret(conv*)(__VA_ARGS__);                                                      \
     namespace real                                                                                 \
@@ -33,6 +32,7 @@ DEFINE_GAME_FUNCTION(TouchHandlerComponent, __fastcall, EntityComponent*, void*)
 DEFINE_GAME_FUNCTION(MessageManagerCallEntityFunction, __fastcall, void, void*, Entity*, int,
                      std::string, VariantList*, int);
 DEFINE_GAME_FUNCTION(GetMessageManager, __fastcall, void*);
+DEFINE_GAME_FUNCTION(SetScrollProgressEntity, __fastcall, void, Entity*, CL_Vec2f*);
 // Declared in drawing.cpp
 DEFINE_GAME_FUNCTION(GetApp, __fastcall, App*);
 DEFINE_GAME_FUNCTION(DrawFilledRect, __fastcall, void, const Rectf& rect, uint32_t rgba, float unk3,

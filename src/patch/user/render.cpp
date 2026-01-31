@@ -197,7 +197,7 @@ class CustomizedTitleScreen : public patch::BasePatch
         }
         weatherMgr.m_sig_eventSubscribe.connect(&customWeatherEvent);
         // Register the Multi-Choice option
-        optionsMgr.addMultiChoiceOption("qol", "UI", "osgt_qol_title_bg", "Title Background",
+        optionsMgr.addMultiChoiceOption("qol", "UI", "osgt_qol_title_bg", "Title Screen Background",
                                         displayNames, &TitleBackgroundOnSelect, 80.0f);
     }
 

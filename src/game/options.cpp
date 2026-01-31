@@ -135,6 +135,10 @@ REGISTER_GAME_FUNCTION(ScrollScroll,
                        "C7 44 24 38 00 00 00 00 C6 44 24 28 00 41 B8 06 00 00 00 48 8D ? ? ? ? ? "
                        "48 8D 4C 24 28 E8 ? ? ? ? 90 4C 8B C3 48 8D 54 24 28 48 8B CF E8",
                        __fastcall, Entity*, void* pMem, ScrollSettings*);
+REGISTER_GAME_FUNCTION(SetScrollProgressEntity,
+                       "48 8B C4 55 48 8D A8 78 FE FF FF 48 81 EC 80 02 00 00 48 C7 44 24 20 FE FF "
+                       "FF FF 48 89 58 18 48 89 78 20 48 8B",
+                       __fastcall, void, Entity*, CL_Vec2f*);
 REGISTER_GAME_FUNCTION(OnMenuButtonPressed,
                        "40 53 41 56 41 57 48 83 EC 50 48 8B ? ? ? ? ? 48 33 C4 48 89 44 24 40",
                        __fastcall, void, VariantList*);
@@ -173,6 +177,8 @@ void game::OptionsManager::initialize()
     real::FilterInputComponent =
         game.findMemoryPattern<FilterInputComponent_t>(pattern::FilterInputComponent);
     real::ScrollScroll = game.findMemoryPattern<ScrollScroll_t>(pattern::ScrollScroll);
+    real::SetScrollProgressEntity =
+        game.findMemoryPattern<SetScrollProgressEntity_t>(pattern::SetScrollProgressEntity);
     real::DisableAllButtonsEntity =
         game.findMemoryPattern<DisableAllButtonsEntity_t>(pattern::DisableAllButtonsEntity);
     real::OptionsMenuCreate =
@@ -201,8 +207,9 @@ void OptionsManager::renderSlider(OptionsManager::GameOption& optionDef, void* p
 {
     Entity* pEnt = reinterpret_cast<Entity*>(pEntityPtr);
 
-    // The client uses this for padding, lets do the same for consistency.
-    vPosY += real::iPhoneMapY(20.0) * 2;
+    // The client uses this real::iPhoneMapY(20.0) * 2 in main page, but since it's not really
+    // scaled in height, we'll opt to use a static padding.
+    vPosY += 100.0f;
 
     // We really don't want it to be smaller than vanilla 1024x768 iPhoneMapX(360.0f), but we want
     // it to be leaner in high res.
@@ -245,8 +252,9 @@ void OptionsManager::renderCheckbox(OptionsManager::GameOption& optionDef, void*
 {
     Entity* pEnt = reinterpret_cast<Entity*>(pEntityPtr);
 
-    // The client uses this for padding, lets do the same for consistency.
-    vPosY += real::iPhoneMapY(20.0);
+    // Pad before next checkbox, client originally uses real::iPhoneMapY(20.0) in main page, but on
+    // large screens it's kinda wack.
+    vPosY += 30.0f;
 
     uint32_t fontID = 0;
     float fontScale = 1.0f;
@@ -283,7 +291,7 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
     pEnt->AddEntity(pMCEnt);
 
     // Pad it similarly to rest of options
-    vPosY += real::iPhoneMapY(20.0);
+    vPosY += 30.0f;
 
     // Retrieve fontscale
     uint32_t fontID;
@@ -291,9 +299,10 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
     real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 28);
 
     // Create the option label
-    Entity* pOptionsLabel =
-        real::CreateTextLabelEntity(pMCEnt, "optLabel", vPosX, vPosY, optionDef.displayName);
-    real::SetupTextEntity(pOptionsLabel, fontID, fontScale);
+    Entity* pOptionsLabel = real::CreateTextLabelEntity(pMCEnt, "optLabel", vPosX + (vSizeX / 2),
+                                                        vPosY, optionDef.displayName);
+    real::SetupTextEntity(pOptionsLabel, 0, 0);
+    pOptionsLabel->GetVar("alignment")->Set(ALIGNMENT_UPPER_CENTER);
 
     vPosY += pOptionsLabel->GetVar("size2d")->GetVector2().y + real::iPhoneMapY(5.0);
 
@@ -306,7 +315,12 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
     }
 
     // Re-scale for the multichoice modal itself.
-    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 30);
+    Rectf screenRect;
+    real::GetScreenRect(screenRect);
+    if (screenRect.bottom <= 1080)
+        real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 24);
+    else
+        real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 30);
 
     // They added some wack trailing args we don't care about to end of TextButtonEntity.
     Entity* pBackButton = real::CreateTextButtonEntity(pMCEnt, "back", vPosX, vPosY, " <<  ", false,
@@ -331,10 +345,12 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
                 ->sig_function.connect(reinterpret_cast<VariantListCallback>(optionDef.signal));
     }
 
-    Entity* pTextLabel = real::CreateTextLabelEntity(pMCEnt, "txt", vPosX + (vSizeX / 2), vPosY,
-                                                     (*optionDef.displayOptions)[idx]);
-    pTextLabel->GetVar("alignment")->Set(ALIGNMENT_UPPER_CENTER);
-    real::SetupTextEntity(pTextLabel, fontID, fontScale);
+    Entity* pTextLabel =
+        real::CreateTextLabelEntity(pMCEnt, "txt", vPosX + (vSizeX / 2),
+                                    vPosY + (pBackButton->GetVar("size2d")->GetVector2().y / 2),
+                                    (*optionDef.displayOptions)[idx]);
+    real::SetupTextEntity(pTextLabel, 0, 0);
+    pTextLabel->GetVar("alignment")->Set(ALIGNMENT_CENTER);
 
     Entity* pNextButton = real::CreateTextButtonEntity(pMCEnt, "next", vPosX + vSizeX, vPosY,
                                                        " >> ", false, 0, "", 0, "", 1, 0);
@@ -368,8 +384,21 @@ void OptionsManager::renderMultiChoice(OptionsManager::GameOption& optionDef, vo
             ->sig_function.connect(reinterpret_cast<VariantListCallback>(optionDef.signal));
     }
 
+    CL_Vec2f vButtonSize = pNextButton->GetVar("size2d")->GetVector2();
+    // If we have a hint string assigned, we'll display it below the option, helps with centering
+    // and width issues.
+    if (optionDef.extraInfo.size() > 0)
+    {
+        Entity* pTxtEnt = real::CreateTextLabelEntity(
+            pEnt, "txt", vPosX + (vSizeX / 2), vPosY + vButtonSize.y + 25.0f, optionDef.extraInfo);
+        real::SetupTextEntity(pTxtEnt, 0, 0);
+        pTxtEnt->GetVar("alignment")->Set(ALIGNMENT_UPPER_CENTER);
+
+        vPosY += pTxtEnt->GetVar("size2d")->GetVector2().y + 25.0f;
+    }
+
     // Adjust margin for next option.
-    vPosY += pNextButton->GetVar("size2d")->GetVector2().y;
+    vPosY += vButtonSize.y;
 }
 
 void OptionPageOnSelect(VariantList* pVL)
@@ -508,6 +537,12 @@ void OptionsManager::HandleOptionPageButton(VariantList* pVL)
     real::SlideScreen(pOverEnt, 1, 500, 0);
 }
 
+void OptionsManager::HandleOptionPageScrollButton(VariantList* pVL)
+{
+    CL_Vec2f progress = {0.0f, 1.0f};
+    real::SetScrollProgressEntity(pVL->Get(1).GetEntity()->GetParent()->GetParent(), &progress);
+}
+
 void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, void* unk4)
 {
     // Let the game construct options menu for us.
@@ -545,10 +580,24 @@ void OptionsManager::OptionsMenuAddContent(void* pEnt, void* unk2, void* unk3, v
     // Create scaling for our label
     uint32_t fontID;
     float fontScale;
+    real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 16);
+
+    // Create a quick-jump to bottom button next to parental settings
+    Entity* pParentalSettings = pScrollChild->GetEntityByName("Parental");
+    CL_Vec2f vParentalSize = pParentalSettings->GetVar("size2d")->GetVector2();
+    CL_Vec2f vParentalPos = pParentalSettings->GetVar("pos2d")->GetVector2();
+    Entity* pButtonEnt = real::CreateTextButtonEntity(
+        pScrollChild, "JumpButton", vPosX + vParentalSize.x + real::iPadMapX(40.0f),
+        vParentalPos.y + real::iPadMapX(10.0f), "Jump to Bottom", false, 0, "", 0, "", 1, 0);
+    real::SetupTextEntity(pButtonEnt, fontID, fontScale);
+    real::AddBMPRectAroundEntity(pButtonEnt, 0xfbe3a5ff, 0xfbe3a5ff, real::iPadMapX(5.0), true,
+                                 fontScale, fontID, false);
+    SetTextShadowColor(pButtonEnt, 150);
+    pButtonEnt->GetFunction("OnButtonSelected")->sig_function.connect(HandleOptionPageScrollButton);
+
+    // Create our very own label for modded options.
     // 11 lines on desktop, 9 on mobile platforms.
     real::GetFontAndScaleToFitThisLinesPerScreenY(fontID, fontScale, 11);
-
-    // Create our very own label.
     Entity* pOptionsLabel = real::CreateTextLabelEntity(pScrollChild, "osgt_qol_options", vPosX,
                                                         vPosY, "Modded Options:");
     // Set scaling for label.
