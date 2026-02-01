@@ -285,6 +285,8 @@ class PlaymodTimersOverlay : public patch::BasePatch
                 printf("[PlaymodOverlays] invalid icon data payload.\n");
                 break;
             }
+            // Clear the old baggage from icon db.
+            g_modIcons.clear();
             int offset = 10;
             for (int i = 0; i < ToParse; i++)
             {
