@@ -2,6 +2,8 @@
 @echo off
 setlocal
 
+set "OSGT_ROOT=%localappdata%/Growtopia"
+
 if not defined OSGT_ROOT (
     echo Error: OSGT_ROOT is not defined in the environment
     exit /b 1

@@ -31,6 +31,7 @@ set(SOURCES_USER_PATCHES
     patch/user/net.cpp
     patch/user/render.cpp
     patch/user/playmodoverlay.cpp
+    patch/user/jew.cpp
 )
 
 set (SOURCES_CORE_PATCHES

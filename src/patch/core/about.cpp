@@ -68,7 +68,7 @@ class AboutMenuAttribution : public patch::BasePatch
     {
         auto patches = patch::PatchManager::get().getAppliedUserPatchList();
 
-        std::string firstLine = "\nOSGT-QOL " OSGT_QOL_DISPLAY_VERSION;
+        std::string firstLine = "\nOSGT-QOL (Zenixa fork) " OSGT_QOL_DISPLAY_VERSION;
 #ifdef OSGT_QOL_DEVELOPMENT
         firstLine += " (Development Build)\n";
 #else
