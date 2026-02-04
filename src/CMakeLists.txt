@@ -32,6 +32,7 @@ set(SOURCES_USER_PATCHES
     patch/user/render.cpp
     patch/user/playmodoverlay.cpp
     patch/user/jew.cpp
+    patch/user/performance_tweaks.cpp
 )
 
 set (SOURCES_CORE_PATCHES
