@@ -1121,3 +1121,38 @@ class LiveGUIRebuilder : public patch::BasePatch
     }
 };
 REGISTER_USER_GAME_PATCH(LiveGUIRebuilder, live_gui_rebuilder);
+
+class InstantWorldButtonsPatch : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        auto& game = game::GameHarness::get();
+
+        // Since we already use FadeInEntity elsewhere, I don't really think there's any clean way
+        // to hook it? Instead, patch on (kinda) the callsite of FadeInEntity inside AddFloater.
+        //
+        // However... FadeInEntity will not work right if you pass 0 as duration. So we can't just
+        // XOR the argument register to 0. To put an immediate value into the register would require
+        // too much space on the callsite directly.
+        //
+        // Since the fade-in effect is random (via RandomRange), we can clamp the random range to be
+        // [1, 1], effectively making FadeInEntity always get 1 as duration.
+        //
+        // I promise that once we rewrite we'll replace this with a proper hook.
+        uint8_t* p = game.findMemoryPattern<uint8_t*>("BA DC 05 00 00 "
+                                                      "B9 58 02 00 00 "
+                                                      "E8 ? ? ? ? "
+                                                      "44 8B F0 "
+                                                      "BA 40 06 00 00 "
+                                                      "B9 F4 01 00 00 "
+                                                      "E8");
+
+        const uint32_t one = 1;
+        utils::writeMemoryBuffer(p + 1, &one, sizeof(one));  // edx
+        utils::writeMemoryBuffer(p + 6, &one, sizeof(one));  // ecx
+        utils::writeMemoryBuffer(p + 19, &one, sizeof(one)); // edx
+        utils::writeMemoryBuffer(p + 24, &one, sizeof(one)); // ecx
+    }
+};
+REGISTER_USER_GAME_PATCH(InstantWorldButtonsPatch, instant_world_buttons);
