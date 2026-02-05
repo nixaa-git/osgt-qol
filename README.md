@@ -83,6 +83,7 @@ User-facing, visible or impactful patches:
 - Handle drag fix - Fixes the misinput that causes the chat or inventory to bounce back for grab handles that happens when you release their hold too fast
 - Better Log Handle DPI - Uses more sensible DPI values for desktop use rather than mobile-like scaling, most notable on 2K resolution.
 - Instant world buttons - Makes the buttons in the world selection screen appear instantly instead of fading in after a while.
+- Quick drop - Allows you to optionally bind Q to drop the currently selected item.
 
 User-facing patches that don't really impact your gameplay or are made for experimenting:
 - Light Optimization - The light calculation for Growtopia is rather inefficient, this makes the light calculation algorithm a lot more performant

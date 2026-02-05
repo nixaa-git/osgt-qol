@@ -94,3 +94,6 @@ Makes inventory and chat handles more sensible for desktop use on high resolutio
 
 Makes the world buttons appear instantly on the world selection screen
 +instant_world_buttons
+
+Provides ability to toggle Q to drop current item
++quick_drop
