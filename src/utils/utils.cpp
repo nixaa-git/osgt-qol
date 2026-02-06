@@ -34,11 +34,16 @@ RawPattern parsePattern(const std::string& pattern)
 
 void writeMemoryBuffer(void* address, const std::vector<uint8_t> data)
 {
+    writeMemoryBuffer(address, data.data(), data.size());
+}
+
+void writeMemoryBuffer(void* address, const void* data, size_t size)
+{
     DWORD old = 0;
-    if (!VirtualProtect(address, data.size(), PAGE_EXECUTE_READWRITE, &old))
+    if (!VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, &old))
         throw std::runtime_error("Failed to change memory protection.");
-    std::memcpy(address, data.data(), data.size());
-    if (!VirtualProtect(address, data.size(), old, &old))
+    std::memcpy(address, data, size);
+    if (!VirtualProtect(address, size, old, &old))
         throw std::runtime_error("Failed to restore memory protection.");
 }
 

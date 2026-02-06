@@ -22,6 +22,11 @@ REGISTER_GAME_FUNCTION(GenericDialogMenuOnSelect,
                        "00 48 c7 45 90 fe ff ff ff",
                        __fastcall, void, VariantList*);
 
+REGISTER_GAME_FUNCTION(OpenDropOptions,
+                       "40 53 48 81 ec b0 00 00 00 48 c7 44 24 30 fe ff ff ff 48 8b 05 c7 29 2f 00 "
+                       "48 33 c4 48 89 84 24 a0 00 00 00",
+                       __fastcall, void);
+
 class QuickbarHotkeys : public patch::BasePatch
 {
   public:
@@ -231,3 +236,68 @@ class ToggleCtrlJump : public patch::BasePatch
     }
 };
 REGISTER_USER_GAME_PATCH(ToggleCtrlJump, toggle_ctrl_jump);
+
+class QuickDropPatch : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        auto& events = game::EventsAPI::get();
+        events.m_sig_netControllerInput.connect(&NetControllerLocalOnArcadeInput);
+        events.m_sig_addWasdKeys.connect(&AddCustomKeybinds);
+
+        real::OpenDropOptions =
+            game::GameHarness::get().findMemoryPattern<OpenDropOptions_t>(pattern::OpenDropOptions);
+
+        auto& optionsMgr = game::OptionsManager::get();
+        optionsMgr.addCheckboxOption("qol", "Input", "osgt_qol_quick_drop",
+                                     "Enable Q key to open drop current item dialog",
+                                     &OnQuickDropToggledCallback);
+        m_isEnabled = real::GetApp()->GetVar("osgt_qol_quick_drop")->GetUINT32() == 1;
+    }
+
+    static void __fastcall NetControllerLocalOnArcadeInput(void* this_, int keyCode, bool bKeyFired)
+    {
+        if (!m_isEnabled)
+        {
+            return;
+        }
+
+        if (keyCode == 600006)
+        {
+            if (real::GetApp()->GetGameLogic()->IsDialogOpened())
+            {
+                return;
+            }
+
+            if (bKeyFired)
+            {
+                Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
+                if (pGUI->GetEntityByName("OptionsMenu") ||
+                    pGUI->GetEntityByName("ResolutionMenu") || pGUI->GetEntityByName("OptionsPage"))
+                {
+                    return;
+                }
+                real::OpenDropOptions();
+            }
+        }
+    }
+
+    static void AddCustomKeybinds()
+    {
+        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_QuickDrop", 81, 600006, 0, 0);
+    }
+
+    static void OnQuickDropToggledCallback(VariantList* pVariant)
+    {
+        Entity* pCheckbox = pVariant->Get(1).GetEntity();
+        bool bChecked = pCheckbox->GetVar("checked")->GetUINT32() != 0;
+        real::GetApp()->GetVar("osgt_qol_quick_drop")->Set(uint32_t(bChecked));
+        m_isEnabled = bChecked;
+    }
+
+  private:
+    static bool m_isEnabled;
+};
+bool QuickDropPatch::m_isEnabled = false;
+REGISTER_USER_GAME_PATCH(QuickDropPatch, quick_drop);

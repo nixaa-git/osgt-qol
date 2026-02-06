@@ -19,6 +19,9 @@ RawPattern parsePattern(const std::string& pattern);
 // Write buffer data to a memory address. Throws std::runtime_error on failure.
 void writeMemoryBuffer(void* address, const std::vector<uint8_t> data);
 
+// Write buffer data to a memory address. Throws std::runtime_error on failure.
+void writeMemoryBuffer(void* address, const void* data, size_t size);
+
 // Write IDA-style memory pattern to a memory address. The function will jump over wildcard bytes in
 // the pattern. Throws std::runtime_error or std::invalid_argument on failure.
 void writeMemoryPattern(void* address, const std::string& pattern);
