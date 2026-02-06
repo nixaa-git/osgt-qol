@@ -82,6 +82,9 @@ User-facing, visible or impactful patches:
 - Pause Menu No AAP - Removes "Secure my Account" button in Pause Menu, given the target audience of the mod, this mod makes sense for restoring visual identity. Can be toggled on the fly in OSGT-QOL Settings.
 - Handle drag fix - Fixes the misinput that causes the chat or inventory to bounce back for grab handles that happens when you release their hold too fast
 - Better Log Handle DPI - Uses more sensible DPI values for desktop use rather than mobile-like scaling, most notable on 2K resolution.
+- Instant world buttons - Makes the buttons in the world selection screen appear instantly instead of fading in after a while.
+- Quick drop - Allows you to optionally bind Q to drop the currently selected item.
+- Anchor camera to player - Always centers camera around the player including at the world borders. This is disabled by default and can be enabled in the settings in-game.
 
 User-facing patches that don't really impact your gameplay or are made for experimenting:
 - Light Optimization - The light calculation for Growtopia is rather inefficient, this makes the light calculation algorithm a lot more performant
