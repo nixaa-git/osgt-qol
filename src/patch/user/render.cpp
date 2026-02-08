@@ -153,6 +153,10 @@ REGISTER_GAME_FUNCTION(
     WorldRendererOnRender,
     "48 8B C4 55 41 54 41 55 41 56 41 57 48 8D 68 88 48 81 EC 50 01 00 00 48 C7 45 A8 FE FF FF FF",
     __fastcall, void, WorldRenderer*, CL_Vec2f*);
+REGISTER_GAME_FUNCTION(WorldRendererAdvanceSong,
+                       "48 8B C4 55 41 54 41 55 41 56 41 57 48 8D 68 A1 48 81 EC F0 00 00 00 48 C7 "
+                       "45 8F FE FF FF FF 48 89 58 10",
+                       __fastcall, void, WorldRenderer*);
 
 static std::vector<std::string> displayNames;
 static uint32_t vanillaWeatherBound = 16;
@@ -1409,3 +1413,78 @@ class AnchorCameraToPlayerPatch : public patch::BasePatch
 bool AnchorCameraToPlayerPatch::m_centerCameraOnPlayer = false;
 bool AnchorCameraToPlayerPatch::m_hotkeyEnabled = false;
 REGISTER_USER_GAME_PATCH(AnchorCameraToPlayerPatch, anchor_camera_to_player);
+
+class SheetMusicAudioRenderSync : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        auto& game = game::GameHarness::get();
+        game.hookFunctionPatternDirect<WorldRendererAdvanceSong_t>(
+            pattern::WorldRendererAdvanceSong, WorldRendererAdvanceSong,
+            &real::WorldRendererAdvanceSong);
+
+        auto& events = game::EventsAPI::get();
+        events.m_sig_onMapLoaded.connect(&OnMapLoaded);
+    }
+    static void OnMapLoaded(void*, __int64, __int64, __int64)
+    {
+        // We'll reset the flags used here.
+        m_finishedPlaying = true;
+        m_snapbackIdx = -1;
+    }
+    static void __fastcall WorldRendererAdvanceSong(WorldRenderer* this_)
+    {
+        if (this_->m_musicCoord == -1)
+        {
+            // Reset if sheet music is disabled and re-enabled.
+            if (!m_finishedPlaying)
+            {
+                m_finishedPlaying = true;
+                m_snapbackIdx = -1;
+            }
+            return;
+        }
+        // We'll offset the starting music coord to account for the adding/removing we'll be doing.
+        if (m_finishedPlaying)
+        {
+            this_->m_musicCoord = this_->m_musicStart - 1;
+            m_finishedPlaying = false;
+            m_snapbackIdx = -1;
+        }
+        else if (m_snapbackIdx != -1)
+        {
+            // Repeats will snap the playing coord back, we'll have to track that as well.
+            this_->m_musicCoord = m_snapbackIdx;
+            m_snapbackIdx = -1;
+        }
+        this_->m_musicCoord++;
+        // Save current coordinate. The AdvanceSong function increments music coordinate or resets
+        // it to start, if we see a sudden jump back to start, we know the song has finished.
+        int curCoord = this_->m_musicCoord;
+        real::WorldRendererAdvanceSong(this_);
+        this_->m_musicCoord--;
+        if (this_->m_musicCoord <= this_->m_musicStart && curCoord >= this_->m_musicEnd)
+        {
+            this_->m_musicCoord = this_->m_musicEnd;
+            m_finishedPlaying = true;
+        }
+        else
+        {
+            // Handling repeats, save their "snapback index" and make it stay visually on repeat end
+            // for this cycle.
+            if (curCoord > this_->m_musicCoord)
+            {
+                m_snapbackIdx = this_->m_musicCoord;
+                this_->m_musicCoord = curCoord;
+            }
+        }
+    }
+
+  private:
+    static bool m_finishedPlaying;
+    static int m_snapbackIdx;
+};
+bool SheetMusicAudioRenderSync::m_finishedPlaying = true;
+int SheetMusicAudioRenderSync::m_snapbackIdx = -1;
+REGISTER_USER_GAME_PATCH(SheetMusicAudioRenderSync, sheet_music_audio_render_sync);

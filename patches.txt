@@ -100,3 +100,6 @@ Provides ability to toggle Q to drop current item
 
 Adds an option to center camera to player at cost of some aesthetics (able to see out of bounds)
 +anchor_camera_to_player
+
+Synchronizes audio playback and note rendering not matching for sheet music on V3.02 clients.
++sheet_music_audio_render_sync
