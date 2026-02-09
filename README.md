@@ -52,6 +52,7 @@ Core Patches (always enabled):
 - No DACL Modifications - Removes restrictive ACEs applied to the game, which allows for other programs/scripts to interact with the game without needing Administrator privileges
 - About Menu attribution - Adds credits for the modification & lists all the loaded in user patches
 - Secure Item Manager - Scans to-be-downloaded files for path traversal attempts, stopping & warning the user on detection
+- Secure Battle Event - Fixes a Remote Code Execution vulnerability in Battle Event processing logic and adds a few sanitizations for BattleStatus serialization
 - Save & Log Location Fixer - Loads save.dat from current working directory and sends game logs to log.txt residing in current working directory
 
 User-facing, most notable/impactful patches:
@@ -85,6 +86,7 @@ User-facing, visible or impactful patches:
 - Instant world buttons - Makes the buttons in the world selection screen appear instantly instead of fading in after a while.
 - Quick drop - Allows you to optionally bind Q to drop the currently selected item.
 - Anchor camera to player - Always centers camera around the player including at the world borders. This is disabled by default and can be enabled in the settings in-game.
+- Sheet Music Audio & Render syncronization - Fixes sheet music audio lagging behind visuals.
 
 User-facing patches that don't really impact your gameplay or are made for experimenting:
 - Light Optimization - The light calculation for Growtopia is rather inefficient, this makes the light calculation algorithm a lot more performant
