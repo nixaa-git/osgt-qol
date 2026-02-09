@@ -52,6 +52,7 @@ Core Patches (always enabled):
 - No DACL Modifications - Removes restrictive ACEs applied to the game, which allows for other programs/scripts to interact with the game without needing Administrator privileges
 - About Menu attribution - Adds credits for the modification & lists all the loaded in user patches
 - Secure Item Manager - Scans to-be-downloaded files for path traversal attempts, stopping & warning the user on detection
+- Secure Battle Event - Fixes a Remote Code Execution vulnerability in Battle Event processing logic and adds a few sanitizations for BattleStatus serialization
 - Save & Log Location Fixer - Loads save.dat from current working directory and sends game logs to log.txt residing in current working directory
 
 User-facing, most notable/impactful patches:
