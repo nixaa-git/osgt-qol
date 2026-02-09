@@ -183,7 +183,9 @@ REGISTER_GAME_FUNCTION(
     PlayerItemsUpdateQuickSlotsWithUsedItem,
     "85 D2 0F 84 ? ? ? ? 48 89 5C 24 10 57 48 83 EC 20 48 63 DA 48 8B F9 83 FB 70 0F 84",
     __fastcall, void, PlayerItems*, int);
-
+REGISTER_GAME_FUNCTION(PlayerItemsRemoveFromQuickSlots,
+                       "40 53 48 83 EC 20 48 8B 41 20 48 8B D9 44 8B CA 48 8B 08", __fastcall, void,
+                       PlayerItems*, int);
 static std::vector<std::string> displayNames;
 static uint32_t vanillaWeatherBound = 16;
 class CustomizedTitleScreen : public patch::BasePatch
@@ -1555,6 +1557,19 @@ class HotbarExpanded : public patch::BasePatch
             pattern::PlayerItemsUpdateQuickSlotsWithUsedItem,
             PlayerItemsUpdateQuickSlotsWithUsedItem,
             &real::PlayerItemsUpdateQuickSlotsWithUsedItem);
+        game.hookFunctionPatternDirect<PlayerItemsRemoveFromQuickSlots_t>(
+            pattern::PlayerItemsRemoveFromQuickSlots, PlayerItemsRemoveFromQuickSlots,
+            &real::PlayerItemsRemoveFromQuickSlots);
+    }
+
+    static void __fastcall PlayerItemsRemoveFromQuickSlots(PlayerItems* pPlayerItems, int itemID)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (m_extendedSlots[i] == itemID)
+                m_extendedSlots[i] = 0;
+        }
+        real::PlayerItemsRemoveFromQuickSlots(pPlayerItems, itemID);
     }
 
     static void __fastcall PlayerItemsUpdateQuickSlotsWithUsedItem(PlayerItems* pPlayerItems,
