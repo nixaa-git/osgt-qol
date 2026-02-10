@@ -171,7 +171,10 @@ REGISTER_GAME_FUNCTION(UpdateTouchControlPositions,
                        "48 8B C4 55 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 70 01 00 00 48 "
                        "C7 44 24 50 FE FF FF FF",
                        _fastcall, void);
-
+REGISTER_GAME_FUNCTION(TradeMenuOnInventoryMoved,
+                       "48 83 EC 28 48 8B 41 18 48 85 C0 74 32 F3 0F 10 ? ? ? ? ? 48 8D 54 24 30 "
+                       "F3 0F 5C 89 04 01 00 00",
+                       __fastcall, void, void*);
 REGISTER_GAME_FUNCTION(GameLogicComponentGetQuickToolInSlot,
                        "F3 0F 2C ? ? ? ? ? 44 0F BE ? ? ? ? ? 44 03 C0 48 63 C2 44 29 ? ? ? ? ? 0F "
                        "BF 84 41 E8 01 00 00",
@@ -1566,6 +1569,8 @@ class HotbarExpanded : public patch::BasePatch
 
         // Function resolves
         real::AddTool = game.findMemoryPattern<AddTool_t>(pattern::AddTool);
+        real::TradeMenuOnInventoryMoved =
+            game.findMemoryPattern<TradeMenuOnInventoryMoved_t>(pattern::TradeMenuOnInventoryMoved);
 
         // Options & Preferences
         Variant* pVariant = real::GetApp()->GetVar("osgt_qol_hotbar_size");
@@ -1747,6 +1752,8 @@ class HotbarExpanded : public patch::BasePatch
             real::UpdateTouchControlPositions();
             return;
         }
+        if (real::GetApp()->GetGameLogic()->m_pTradeMenu != nullptr)
+            real::TradeMenuOnInventoryMoved(real::GetApp()->GetGameLogic()->m_pTradeMenu);
         // Realign touch controls to be higher up since the quickbar is just gonna overlap them when
         // expanded.
         Entity* pGameMenu = real::GetApp()->m_entityRoot->GetEntityByNameRecursively("GameMenu");
