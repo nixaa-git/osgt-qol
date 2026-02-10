@@ -28,7 +28,7 @@ class GameLogicComponent : public EntityComponent
 
     uint8_t pad5[24];
     void* m_pTradeMenu;
-    uint8_t pad6[142];
+    uint8_t pad6[144];
     bool m_activeGuildEvent;
     uint8_t pad7[127];
 };
