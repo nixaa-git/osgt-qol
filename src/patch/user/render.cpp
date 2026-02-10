@@ -186,6 +186,10 @@ REGISTER_GAME_FUNCTION(
 REGISTER_GAME_FUNCTION(PlayerItemsRemoveFromQuickSlots,
                        "40 53 48 83 EC 20 48 8B 41 20 48 8B D9 44 8B CA 48 8B 08", __fastcall, void,
                        PlayerItems*, int);
+REGISTER_GAME_FUNCTION(
+    PlayerItemsFillBlankQuickToolSlotsWithStuff,
+    "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 83 EC 30 48 8B 41 20",
+    __fastcall, void, PlayerItems*);
 static std::vector<std::string> displayNames;
 static uint32_t vanillaWeatherBound = 16;
 class CustomizedTitleScreen : public patch::BasePatch
@@ -1532,39 +1536,109 @@ class HotbarExpanded : public patch::BasePatch
     {
         // This patch attempts to find every place where hotbar items are limited and expands on
         // them to allow us create an expanded quicktools hotbar.
-        // Currently we are up to 4 extra quicktools (total of 7 useable items after fist), but it's
-        // not in a fully playable state yet.
-        // This patch also takes control of Touch Controls positioning since with an expanded
-        // hotbar, they'd overlap with the hotbar.
-        // TODO: Add hot patching support so quicktools could be added and removed on the go
-        // (3 would return UpdateTouchControlPositions to normal)
+        // The mod allows the player to add up to 10 extra quickslots
+        // Currently we are up to 6 extra quicktools (total of 9 useable items after fist).
 
         auto& game = game::GameHarness::get();
-        game.hookFunctionPatternDirect<InventoryMenuCreate_t>(
-            pattern::InventoryMenuCreate, InventoryMenuCreate, &real::InventoryMenuCreate);
-        real::AddTool = game.findMemoryPattern<AddTool_t>(pattern::AddTool);
-
-        game.hookFunctionPatternDirect<UpdateTouchControlPositions_t>(
-            pattern::UpdateTouchControlPositions, UpdateTouchControlPositions,
-            &real::UpdateTouchControlPositions);
-        game.hookFunctionPatternDirect<GameLogicComponentGetQuickToolInSlot_t>(
-            pattern::GameLogicComponentGetQuickToolInSlot, GameLogicComponentGetQuickToolInSlot,
-            &real::GameLogicComponentGetQuickToolInSlot);
-        game.hookFunctionPatternCall<PlayerItemsSetQuickSlotItem_t>(
-            pattern::PlayerItemsSetQuickSlotItem, PlayerItemsSetQuickSlotItem,
-            &real::PlayerItemsSetQuickSlotItem);
+        // Hooks
+        game.hookFunctionPatternDirect<PlayerItemsFillBlankQuickToolSlotsWithStuff_t>(
+            pattern::PlayerItemsFillBlankQuickToolSlotsWithStuff,
+            PlayerItemsFillBlankQuickToolSlotsWithStuff,
+            &real::PlayerItemsFillBlankQuickToolSlotsWithStuff);
+        game.hookFunctionPatternDirect<PlayerItemsRemoveFromQuickSlots_t>(
+            pattern::PlayerItemsRemoveFromQuickSlots, PlayerItemsRemoveFromQuickSlots,
+            &real::PlayerItemsRemoveFromQuickSlots);
         game.hookFunctionPatternDirect<PlayerItemsUpdateQuickSlotsWithUsedItem_t>(
             pattern::PlayerItemsUpdateQuickSlotsWithUsedItem,
             PlayerItemsUpdateQuickSlotsWithUsedItem,
             &real::PlayerItemsUpdateQuickSlotsWithUsedItem);
-        game.hookFunctionPatternDirect<PlayerItemsRemoveFromQuickSlots_t>(
-            pattern::PlayerItemsRemoveFromQuickSlots, PlayerItemsRemoveFromQuickSlots,
-            &real::PlayerItemsRemoveFromQuickSlots);
+        game.hookFunctionPatternCall<PlayerItemsSetQuickSlotItem_t>(
+            pattern::PlayerItemsSetQuickSlotItem, PlayerItemsSetQuickSlotItem,
+            &real::PlayerItemsSetQuickSlotItem);
+        game.hookFunctionPatternDirect<GameLogicComponentGetQuickToolInSlot_t>(
+            pattern::GameLogicComponentGetQuickToolInSlot, GameLogicComponentGetQuickToolInSlot,
+            &real::GameLogicComponentGetQuickToolInSlot);
+        game.hookFunctionPatternDirect<UpdateTouchControlPositions_t>(
+            pattern::UpdateTouchControlPositions, UpdateTouchControlPositions,
+            &real::UpdateTouchControlPositions);
+        game.hookFunctionPatternDirect<InventoryMenuCreate_t>(
+            pattern::InventoryMenuCreate, InventoryMenuCreate, &real::InventoryMenuCreate);
+
+        // Function resolves
+        real::AddTool = game.findMemoryPattern<AddTool_t>(pattern::AddTool);
+
+        // Options & Preferences
+        Variant* pVariant = real::GetApp()->GetVar("osgt_qol_hotbar_size");
+        if (pVariant->GetType() == Variant::TYPE_UINT32)
+            m_extraSlots = pVariant->GetUINT32();
+
+        auto& optionsMgr = game::OptionsManager::get();
+        m_optionNames.push_back("4 total slots (vanilla)");
+        for (int i = 5; i <= 10; i++)
+            m_optionNames.push_back(std::to_string(i) + " total slots");
+        optionsMgr.addMultiChoiceOption("qol", "UI", "osgt_qol_hotbar_size", "Hotbar slots",
+                                        m_optionNames, &OnInventoryResize, 80.0f);
+    }
+
+    // Option callbacks
+    static void OnInventoryResize(VariantList* pVariant)
+    {
+        // Update the weather index
+        Entity* pClickedEnt = pVariant->Get(1).GetEntity();
+        Variant* pOptVar = real::GetApp()->GetVar("osgt_qol_hotbar_size");
+        uint32_t idx = pOptVar->GetUINT32();
+        if (pClickedEnt->GetName() == "back")
+        {
+            if (idx == 0)
+                idx = (uint32_t)m_optionNames.size() - 1;
+            else
+                idx--;
+        }
+        else if (pClickedEnt->GetName() == "next")
+        {
+            if (idx >= m_optionNames.size() - 1)
+                idx = 0;
+            else
+                idx++;
+        }
+        pOptVar->Set(idx);
+        // Update the option label
+        Entity* pTextLabel = pClickedEnt->GetParent()->GetEntityByName("txt");
+        real::SetTextEntity(pTextLabel, m_optionNames[idx]);
+        m_extraSlots = idx;
+        updateQuickToolsForNewSize(idx);
+    }
+
+    // Hooks
+    static void __fastcall PlayerItemsFillBlankQuickToolSlotsWithStuff(PlayerItems* pPlayerItems)
+    {
+        if (m_extraSlots == 0)
+        {
+            real::PlayerItemsFillBlankQuickToolSlotsWithStuff(pPlayerItems);
+            return;
+        }
+        // Clear our custom slots
+        for (int i = 0; i < m_extraSlots; i++)
+            m_extendedSlots[i] = 0;
+        int nextSlot = 0;
+        for (auto it = pPlayerItems->m_items.begin(); it != pPlayerItems->m_items.end(); it++)
+        {
+            ItemInfo* pItem = &real::GetApp()->GetItemInfoManager()->m_items[(*it).itemID];
+            if (pItem->category != 20 && pItem->category != 107 && pItem->category != 1)
+            {
+                if (nextSlot < 4)
+                    pPlayerItems->m_quickSlots[nextSlot++] = pItem->ID;
+                else if (nextSlot < 4 + m_extraSlots)
+                    m_extendedSlots[nextSlot++ - 4] = pItem->ID;
+                else
+                    break;
+            }
+        }
     }
 
     static void __fastcall PlayerItemsRemoveFromQuickSlots(PlayerItems* pPlayerItems, int itemID)
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < m_extraSlots; i++)
         {
             if (m_extendedSlots[i] == itemID)
                 m_extendedSlots[i] = 0;
@@ -1591,10 +1665,22 @@ class HotbarExpanded : public patch::BasePatch
             int slot = -1;
             for (int i = 0; i < 4; i++)
             {
-                if (pPlayerItems->m_quickSlots[i] == itemID || m_extendedSlots[i] == itemID)
+                if (pPlayerItems->m_quickSlots[i] == itemID)
                 {
                     slot = i;
                     break;
+                }
+            }
+            if (slot == -1)
+            {
+                // Check our own extra slots separately
+                for (int i = 0; i < m_extraSlots; i++)
+                {
+                    if (m_extendedSlots[i] == itemID)
+                    {
+                        slot = i;
+                        break;
+                    }
                 }
             }
             if (slot == -1)
@@ -1619,12 +1705,12 @@ class HotbarExpanded : public patch::BasePatch
                 }
                 // Nothing was free, shift everything to make room
                 short moddedFirstItem = m_extendedSlots[0];
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < m_extraSlots - 1; i++)
                     m_extendedSlots[i] = m_extendedSlots[i + 1];
                 for (int i = 1; i < 3; i++)
                     pPlayerItems->m_quickSlots[i] = pPlayerItems->m_quickSlots[i + 1];
                 pPlayerItems->m_quickSlots[3] = moddedFirstItem;
-                m_extendedSlots[3] = itemID;
+                m_extendedSlots[m_extraSlots - 1] = itemID;
             }
         }
     }
@@ -1633,7 +1719,7 @@ class HotbarExpanded : public patch::BasePatch
     {
         if (slot < 4)
             real::PlayerItemsSetQuickSlotItem(pPlayerItems, slot, itemID);
-        else if (slot < 9)
+        else if (slot < (4 + m_extraSlots))
             m_extendedSlots[slot - 4] = itemID;
     }
 
@@ -1642,7 +1728,7 @@ class HotbarExpanded : public patch::BasePatch
     {
         if (slot < 4)
             return real::GameLogicComponentGetQuickToolInSlot(pGameLogic, slot);
-        else if (slot < 9)
+        else if (slot < (4 + m_extraSlots))
             return m_extendedSlots[slot - 4];
         return 0;
     }
@@ -1655,6 +1741,12 @@ class HotbarExpanded : public patch::BasePatch
 
     static void __fastcall UpdateTouchControlPositions()
     {
+        // No extra slots? Use vanilla logic.
+        if (m_extraSlots == 0)
+        {
+            real::UpdateTouchControlPositions();
+            return;
+        }
         // Realign touch controls to be higher up since the quickbar is just gonna overlap them when
         // expanded.
         Entity* pGameMenu = real::GetApp()->m_entityRoot->GetEntityByNameRecursively("GameMenu");
@@ -1711,23 +1803,27 @@ class HotbarExpanded : public patch::BasePatch
         }
     }
 
+    static float calculateAddedWidthPerTool(Entity* pToolMenu)
+    {
+        Entity* pTool0 = pToolMenu->GetEntityByName("Tool0");
+        Entity* pTool1 = pToolMenu->GetEntityByName("Tool1");
+        CL_Vec2f vToolSize = pTool0->GetVar("size2d")->GetVector2();
+        float fWidthMargin =
+            (pTool1->GetVar("pos2d")->GetVector2() - pTool0->GetVar("pos2d")->GetVector2()).x -
+            vToolSize.x;
+        return fWidthMargin + vToolSize.x;
+    }
+
     static void __fastcall InventoryMenuCreate(Entity* pEnt)
     {
         real::InventoryMenuCreate(pEnt);
 
         // Max is currently 4 without game crashing - needs investigation still.
-        int iToolsToAdd = 4;
+        int iToolsToAdd = m_extraSlots;
 
         // Calculate added widths and reposition the tools
         Entity* pToolMenu = pEnt->GetEntityByNameRecursively("ToolSelectMenu");
-        Entity* pTool0 = pToolMenu->GetEntityByName("Tool0");
-        Entity* pTool1 = pToolMenu->GetEntityByName("Tool1");
-
-        CL_Vec2f vToolSize = pTool0->GetVar("size2d")->GetVector2();
-        float fWidthMargin =
-            (pTool1->GetVar("pos2d")->GetVector2() - pTool0->GetVar("pos2d")->GetVector2()).x -
-            vToolSize.x;
-        float fAddedWidth = (fWidthMargin * iToolsToAdd) + (vToolSize.x * iToolsToAdd);
+        float fAddedWidth = calculateAddedWidthPerTool(pToolMenu) * iToolsToAdd;
 
         Variant* pVar = pToolMenu->GetVar("pos2d");
         CL_Vec2f pos2d = pVar->GetVector2();
@@ -1744,8 +1840,65 @@ class HotbarExpanded : public patch::BasePatch
             real::AddTool(i, pToolMenu);
     }
 
+    static void updateQuickToolsForNewSize(int iToolsToAdd)
+    {
+        Entity* pToolMenu =
+            real::GetApp()->m_entityRoot->GetEntityByNameRecursively("ToolSelectMenu");
+        if (!pToolMenu)
+            return;
+        float fAddedWidth = calculateAddedWidthPerTool(pToolMenu);
+
+        // Resize quick tools to match new slots
+        int iCurrentTools = (int)pToolMenu->GetChildren()->size();
+        if (iCurrentTools > (4 + iToolsToAdd))
+        {
+            // We need to remove slots, reduce width and remove tools
+            int iToolsToRemove = iCurrentTools - (4 + iToolsToAdd);
+            float fRemovedWidth = fAddedWidth * (iToolsToRemove);
+            Variant* pVar = pToolMenu->GetVar("pos2d");
+            CL_Vec2f pos2d = pVar->GetVector2();
+            pos2d.x += ceilf(fRemovedWidth / 2);
+            pVar->Set(pos2d);
+            pVar = pToolMenu->GetVar("size2d");
+            CL_Vec2f size2d = pVar->GetVector2();
+            size2d.x -= fRemovedWidth;
+            pVar->Set(size2d);
+
+            for (int i = 4 + iToolsToAdd; i < iCurrentTools; i++)
+            {
+                printf("%d\n", i);
+                Entity* pTool = pToolMenu->GetEntityByName("Tool" + std::to_string(i));
+                if (pTool)
+                    pToolMenu->RemoveEntityByAddress(pTool);
+                m_extendedSlots[i - 4] = 0;
+            }
+        }
+        else
+        {
+            // We need to add slots, add width and tools
+            fAddedWidth *= iToolsToAdd + 4 - iCurrentTools;
+            Variant* pVar = pToolMenu->GetVar("pos2d");
+            CL_Vec2f pos2d = pVar->GetVector2();
+            pos2d.x -= ceilf(fAddedWidth / 2);
+            pVar->Set(pos2d);
+            pVar = pToolMenu->GetVar("size2d");
+            CL_Vec2f size2d = pVar->GetVector2();
+            size2d.x += fAddedWidth;
+            pVar->Set(size2d);
+            for (int i = iCurrentTools; i < iToolsToAdd + 4; i++)
+                real::AddTool(i, pToolMenu);
+            // We will need to re-populate the slots as well
+            PlayerItemsFillBlankQuickToolSlotsWithStuff(
+                &real::GetApp()->GetGameLogic()->m_playerItems);
+        }
+    }
+
   private:
-    static short m_extendedSlots[4];
+    static short m_extendedSlots[6];
+    static short m_extraSlots;
+    static std::vector<std::string> m_optionNames;
 };
-short HotbarExpanded::m_extendedSlots[4] = {0, 0, 0, 0};
+short HotbarExpanded::m_extendedSlots[6] = {0, 0, 0, 0, 0, 0};
+short HotbarExpanded::m_extraSlots = 0;
+std::vector<std::string> HotbarExpanded::m_optionNames;
 REGISTER_USER_GAME_PATCH(HotbarExpanded, hotbar_expanded);

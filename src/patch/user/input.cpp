@@ -59,9 +59,8 @@ class QuickbarHotkeys : public patch::BasePatch
         auto& events = game::EventsAPI::get();
         events.m_sig_netControllerInput.connect(&NetControllerLocalOnArcadeInput);
         events.m_sig_addWasdKeys.connect(&AddCustomKeybinds);
-        for (int i = 0; i < 9; i++)
+        for (int i = 0; i <= 9; i++)
         {
-            printf("%d\n", i);
             m_toolSelect[i] = events.acquireKeycode();
         }
     }
@@ -70,7 +69,7 @@ class QuickbarHotkeys : public patch::BasePatch
     {
         // Our custom mappings right now are just on keycode >= 600000
         // See AddCustomKeybinds function.
-        if (keyCode >= m_toolSelect[0] && keyCode <= m_toolSelect[8])
+        if (keyCode >= m_toolSelect[0] && keyCode <= m_toolSelect[9])
         {
             if (real::GetApp()->GetGameLogic()->IsDialogOpened())
                 return;
@@ -109,7 +108,7 @@ class QuickbarHotkeys : public patch::BasePatch
         // Numpad 0 resetting to Fist/Wrench.
         real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect0", 96,
                             m_toolSelect[0], 0, 0);
-        for (int i = 1; i < 9; i++)
+        for (int i = 1; i <= 9; i++)
         {
             real::AddKeyBinding(real::GetArcadeComponent(),
                                 "chatkey_ToolSelect" + std::to_string(i), 48 + i, m_toolSelect[i],
@@ -121,9 +120,9 @@ class QuickbarHotkeys : public patch::BasePatch
     }
 
   private:
-    static int m_toolSelect[9];
+    static int m_toolSelect[10];
 };
-int QuickbarHotkeys::m_toolSelect[9];
+int QuickbarHotkeys::m_toolSelect[10];
 REGISTER_USER_GAME_PATCH(QuickbarHotkeys, quickbar_hotkey_patch);
 
 class QuickToggleSpaceToPunch : public patch::BasePatch

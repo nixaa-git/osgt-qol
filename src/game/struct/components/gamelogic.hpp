@@ -1,5 +1,6 @@
 #pragma once
 #include "game/struct/component.hpp"
+#include "game/struct/playeritems.hpp"
 
 class WorldTileMap;
 
@@ -21,7 +22,7 @@ class GameLogicComponent : public EntityComponent
     uint8_t m_netObjManager[48];
     uint8_t pad3[16];
     uint8_t m_textManager[40];
-    uint8_t m_playerItems[88];
+    PlayerItems m_playerItems;
     uint8_t pad4[24];
     uint8_t m_effectManager[24];
 
