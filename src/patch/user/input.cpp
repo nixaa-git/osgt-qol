@@ -62,8 +62,10 @@ class QuickbarHotkeys : public patch::BasePatch
         m_bStartFrom0 = pVariant->GetUINT32();
 
         auto& optionsMgr = game::OptionsManager::get();
-        optionsMgr.addCheckboxOption("qol", "Input", "osgt_qol_toggle_hotbar_0",
-                                     "Disable CTRL key to Jump", &ToggleHotkeyPreference);
+        optionsMgr.addCheckboxOption(
+            "qol", "Input", "osgt_qol_toggle_hotbar_0",
+            "Hotbar hotkeys: Start counting from Fist/Wrench instead of first useable item",
+            &ToggleHotkeyPreference);
     }
 
     static void ToggleHotkeyPreference(VariantList* pVariant)
@@ -79,6 +81,7 @@ class QuickbarHotkeys : public patch::BasePatch
         if (real::GetApp()->m_entityRoot->GetEntityByNameRecursively("ConsoleInputBG"))
             return;
 
+        // TODO: Prevent rapid firing.. if we really care about it? Doesn't seem that big of a deal.
         int keyCode = pVL->Get(2).GetUINT32();
         if (keyCode >= 48 && keyCode <= 57)
         {
