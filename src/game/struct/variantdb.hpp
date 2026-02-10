@@ -94,6 +94,23 @@ class VariantDB
         return pData;
     }
 
+    void DeleteVar(const std::string& key)
+    {
+        stdext::hash_map<std::string, Variant*>::iterator itor = m_data.begin();
+        while (itor != m_data.end())
+        {
+            if (itor->first == key)
+            {
+                delete (itor->second);
+                stdext::hash_map<std::string, Variant*>::iterator itorTemp = itor;
+                itor++;
+                m_data.erase(itorTemp);
+                break;
+            }
+            itor++;
+        }
+    }
+
     void DeleteAll()
     {
         stdext::hash_map<std::string, Variant*>::iterator itor = m_data.begin();

@@ -1612,6 +1612,19 @@ class HotbarExpanded : public patch::BasePatch
         real::SetTextEntity(pTextLabel, m_optionNames[idx]);
         m_extraSlots = idx;
         updateQuickToolsForNewSize(idx);
+
+        // Also restore touch paddings if we've removed all extra slots
+        if (m_extraSlots == 0)
+        {
+            Entity* pGameMenu =
+                real::GetApp()->m_entityRoot->GetEntityByNameRecursively("GameMenu");
+            if (!pGameMenu)
+                return;
+            Entity* pTouchEnt = pGameMenu->GetEntityByName("TouchControlsBG");
+            if (!pTouchEnt)
+                return;
+            restoreTouchButtonPaddings(pTouchEnt);
+        }
     }
 
     // Hooks
@@ -1744,6 +1757,47 @@ class HotbarExpanded : public patch::BasePatch
         pEnt->GetVar("pos2d")->Set(vNewPos);
     }
 
+    static void setTouchButtonsPaddingPerElement(Entity* pEnt, Rectf& padding, bool bRevert)
+    {
+        if (bRevert)
+        {
+            if (pEnt->GetVar("touchPaddingOld")->GetType() != Variant::TYPE_UNUSED)
+            {
+                pEnt->GetVar("touchPadding")->Set(pEnt->GetVar("touchPaddingOld")->GetRect());
+                pEnt->GetShared()->DeleteVar("touchPaddingOld");
+            }
+        }
+        else
+        {
+            Variant* pTouchPadOld = pEnt->GetVar("touchPaddingOld");
+            Variant* pTouchPad = pEnt->GetVar("touchPadding");
+            // Save the old padding so we can restore it later
+            if (pTouchPadOld->GetType() == Variant::TYPE_UNUSED)
+                pTouchPadOld->Set(pTouchPad->GetRect());
+            if (pTouchPad->GetRect() == pTouchPadOld->GetRect())
+                pEnt->GetVar("touchPadding")->Set(padding);
+        }
+    }
+
+    static bool doTouchButtonsNeedPaddings(Entity* pEnt)
+    {
+        Variant* pTouchPadOld = pEnt->GetVar("touchPaddingOld");
+        Variant* pTouchPad = pEnt->GetVar("touchPadding");
+        // Save the old padding so we can restore it later
+        if (pTouchPadOld->GetType() == Variant::TYPE_UNUSED)
+            return true;
+        return pTouchPad->GetRect() == pTouchPadOld->GetRect();
+    }
+
+    static void restoreTouchButtonPaddings(Entity* pTouchEnt)
+    {
+        // Use a dummy rect for restoring
+        Rectf padding;
+        std::list<Entity*>* children = pTouchEnt->GetChildren();
+        for (auto it = children->begin(); it != children->end(); it++)
+            setTouchButtonsPaddingPerElement(*it, padding, true);
+    }
+
     static void __fastcall UpdateTouchControlPositions()
     {
         // No extra slots? Use vanilla logic.
@@ -1772,6 +1826,22 @@ class HotbarExpanded : public patch::BasePatch
             CL_Vec2f vItemsParentPos = pItemsParent->GetVar("pos2d")->GetVector2();
             CL_Vec2f vJumpButtonSize = pJumpButton->GetVar("size2d")->GetVector2();
             CL_Vec2f vArrowButtonSize = pTouchRight->GetVar("size2d")->GetVector2();
+
+            // Set right/jump button bottom paddings to none to prevent input leakage on hotbar,
+            // also get rid of the annoyinging large right padding on arrows. This also makes
+            // paddings equal between buttons.
+            if (doTouchButtonsNeedPaddings(pTouchRight)) {
+                float fPaddingRef = vJumpButtonSize.x / 4;
+                Rectf rPaddingRect;
+                rPaddingRect.left = 30.0f;
+                rPaddingRect.right = 30.0f;
+                rPaddingRect.top = fPaddingRef;
+                setTouchButtonsPaddingPerElement(pTouchRight, rPaddingRect, false);
+                setTouchButtonsPaddingPerElement(pJumpButton, rPaddingRect, false);
+                rPaddingRect.bottom = fPaddingRef;
+                setTouchButtonsPaddingPerElement(pTouchLeft, rPaddingRect, false);
+                setTouchButtonsPaddingPerElement(pPunchButton, rPaddingRect, false);
+            }
 
             float fMarginY = real::iPadMapY(5.0f);
             float fNewY = vItemsParentPos.y - vJumpButtonSize.y - fMarginY;
@@ -1873,7 +1943,6 @@ class HotbarExpanded : public patch::BasePatch
 
             for (int i = 4 + iToolsToAdd; i < iCurrentTools; i++)
             {
-                printf("%d\n", i);
                 Entity* pTool = pToolMenu->GetEntityByName("Tool" + std::to_string(i));
                 if (pTool)
                     pToolMenu->RemoveEntityByAddress(pTool);
