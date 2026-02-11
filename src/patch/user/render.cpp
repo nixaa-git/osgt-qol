@@ -1667,6 +1667,11 @@ class HotbarExpanded : public patch::BasePatch
     static void __fastcall PlayerItemsUpdateQuickSlotsWithUsedItem(PlayerItems* pPlayerItems,
                                                                    int itemID)
     {
+        if (m_extraSlots == 0)
+        {
+            real::PlayerItemsUpdateQuickSlotsWithUsedItem(pPlayerItems, itemID);
+            return;
+        }
         // Replicate vanilla client behaviour here.
         if (itemID == 0 || itemID == 112 || itemID == 980 || itemID == 9186)
             return;
