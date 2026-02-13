@@ -317,3 +317,21 @@ class QuickDropPatch : public patch::BasePatch
 bool QuickDropPatch::m_isEnabled = false;
 int QuickDropPatch::m_keycode;
 REGISTER_USER_GAME_PATCH(QuickDropPatch, quick_drop);
+
+class AllowDialogInput : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        auto& game = game::GameHarness::get();
+
+        // Patch out dialog check in NetControllerLocal::OnArcadeInput
+        auto p = game.findMemoryPattern<uint8_t*>("74 19 48 8B 07 48 8B CF 48 8B 5C 24 30");
+        utils::fillMemory(p, 1, 0xEB);
+
+        // Similarly patch out the StopAllKeys call in GenericDialogMenuCreate
+        p = game.findMemoryPattern<uint8_t*>("FF 50 18 F3 0F 10 ? ? ? ? ? E8 ? ? ? ? 0F 28 F0");
+        utils::nopMemory(p, 3);
+    }
+};
+REGISTER_USER_GAME_PATCH(AllowDialogInput, allow_dialog_input);

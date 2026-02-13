@@ -103,3 +103,9 @@ Adds an option to center camera to player at cost of some aesthetics (able to se
 
 Synchronizes audio playback and note rendering not matching for sheet music on V3.02 clients.
 +sheet_music_audio_render_sync
+
+Allows the hotbar to be resized
++hotbar_expanded
+
+Re-allows walking when in dialogs
++allow_dialog_input
