@@ -96,6 +96,9 @@ class Rectf
         this->bottom = ceilf(this->bottom);
     }
 
+    bool operator==(const Rectf& rhs) const { return left == rhs.left && top == rhs.top && right == rhs.right && bottom == rhs.bottom; }
+    bool operator!=(const Rectf& rhs) const { return left != rhs.left || top != rhs.top || right != rhs.right || bottom != rhs.bottom; }
+
     float left, top, right, bottom;
     std::string Print()
     {

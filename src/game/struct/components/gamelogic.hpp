@@ -1,5 +1,6 @@
 #pragma once
 #include "game/struct/component.hpp"
+#include "game/struct/playeritems.hpp"
 
 class WorldTileMap;
 
@@ -21,12 +22,14 @@ class GameLogicComponent : public EntityComponent
     uint8_t m_netObjManager[48];
     uint8_t pad3[16];
     uint8_t m_textManager[40];
-    uint8_t m_playerItems[88];
+    PlayerItems m_playerItems;
     uint8_t pad4[24];
     uint8_t m_effectManager[24];
 
-    uint8_t pad5[176];
+    uint8_t pad5[24];
+    void* m_pTradeMenu;
+    uint8_t pad6[144];
     bool m_activeGuildEvent;
-    uint8_t pad6[127];
+    uint8_t pad7[127];
 };
 static_assert(sizeof(GameLogicComponent) == 880, "GameLogicComponent class size mismatch.");

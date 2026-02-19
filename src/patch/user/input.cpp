@@ -26,24 +26,21 @@ REGISTER_GAME_FUNCTION(OpenDropOptions,
                        "40 53 48 81 ec b0 00 00 00 48 c7 44 24 30 fe ff ff ff 48 8b 05 c7 29 2f 00 "
                        "48 33 c4 48 89 84 24 a0 00 00 00",
                        __fastcall, void);
-
+REGISTER_GAME_FUNCTION(OnConsoleInput,
+                       "48 8B C4 55 48 8B EC 48 83 EC 60 48 C7 45 C8 FE FF FF FF 48 89 58 10 48 89 "
+                       "70 18 48 89 78 20 48 8B ? ? ? ? ? 48 33 C4 48 89 45 F8 48 8B D9 E8",
+                       __fastcall, void, VariantList*);
 class QuickbarHotkeys : public patch::BasePatch
 {
   public:
     void apply() const override
     {
-        // With this patch, we add our own custom hotkeys to ArcadeInputComponent.
-        // The current method used involves injecting them after AddWASDKeys.
-
-        // This approach has one key benefit - the game handles removal and rebinding of our hotkeys
-        // on demand. When you open the in-game chat, it will call OnNativeInputStateChanged. That
-        // function will respectively remove or rebind WASD keys (and our own custom ones) so you
-        // don't leak out any inputs while chatting.
-
-        // As ArcadeInputComponent events fire these so-called "virtual keys", we can use 600000+
-        // keycode range for our custom inputs quite safely.
-        // This also should allow the patch to be expanded into a full on backport of newer client
-        // "Edit Hotkeys" menu.
+        // With this patch, we add our own custom hotkeys to OnConsoleInput.
+        // While we could be using ArcadeInputComponent here, this conflicts on some keyboard
+        // layouts when using it in conjunction with Extended Hotbar patch as some layouts have the
+        // "/" key as Shift + 7. ArcadeInputComponent does not care if you pressed shift or not, the
+        // keycode will be the same.
+        // We will do our own handling to check if we leak inputs or not.
 
         // Right now, the patch adds custom keybinds for switching between inventory quickbar slots.
         // We achieve that by sending ToolSelectComponent a fake "touch" event when we get a key
@@ -55,83 +52,72 @@ class QuickbarHotkeys : public patch::BasePatch
         real::ToolSelectComponentOnTouchStart =
             game.findMemoryPattern<ToolSelectComponentOnTouchStart_t>(
                 pattern::ToolSelectComponentOnTouchStart);
+        game.hookFunctionPatternDirect<OnConsoleInput_t>(pattern::OnConsoleInput, OnConsoleInput,
+                                                         &real::OnConsoleInput);
 
-        auto& events = game::EventsAPI::get();
-        events.m_sig_netControllerInput.connect(&NetControllerLocalOnArcadeInput);
-        events.m_sig_addWasdKeys.connect(&AddCustomKeybinds);
-        m_toolSelect0 = events.acquireKeycode();
-        m_toolSelect1 = events.acquireKeycode();
-        m_toolSelect2 = events.acquireKeycode();
-        m_toolSelect3 = events.acquireKeycode();
+        Variant* pVariant = real::GetApp()->GetVar("osgt_qol_toggle_hotbar_0");
+        if (pVariant->GetType() == Variant::TYPE_UNUSED)
+            pVariant->Set(1U);
+
+        m_bStartFrom0 = pVariant->GetUINT32();
+
+        auto& optionsMgr = game::OptionsManager::get();
+        optionsMgr.addCheckboxOption(
+            "qol", "Input", "osgt_qol_toggle_hotbar_0",
+            "Hotbar hotkeys: Start counting from Fist/Wrench instead of first useable item",
+            &ToggleHotkeyPreference);
     }
 
-    static void __fastcall NetControllerLocalOnArcadeInput(void* this_, int keyCode, bool bKeyFired)
+    static void ToggleHotkeyPreference(VariantList* pVariant)
     {
-        // Our custom mappings right now are just on keycode >= 600000
-        // See AddCustomKeybinds function.
-        if (keyCode >= m_toolSelect0 && keyCode <= m_toolSelect3)
+        Entity* pCheckbox = pVariant->Get(1).GetEntity();
+        bool bChecked = pCheckbox->GetVar("checked")->GetUINT32() != 0;
+        real::GetApp()->GetVar("osgt_qol_toggle_hotbar_0")->Set(uint32_t(bChecked));
+    }
+
+    static void __fastcall OnConsoleInput(VariantList* pVL)
+    {
+        real::OnConsoleInput(pVL);
+        if (real::GetApp()->m_entityRoot->GetEntityByNameRecursively("ConsoleInputBG"))
+            return;
+
+        // TODO: Prevent rapid firing.. if we really care about it? Doesn't seem that big of a deal.
+        int keyCode = pVL->Get(2).GetUINT32();
+        if (keyCode >= 48 && keyCode <= 57)
         {
             if (real::GetApp()->GetGameLogic()->IsDialogOpened())
                 return;
 
-            // We only want to act if they key is pressed, not released.
-            if (bKeyFired)
+            Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
+            // We don't want the key presses to happen when we can't even see our quickbar.
+            if (pGUI->GetEntityByName("OptionsMenu") || pGUI->GetEntityByName("ResolutionMenu") ||
+                pGUI->GetEntityByName("OptionsPage"))
+                return;
+            // GUI -> WorldSpecificGUI always exists. GameMenu only does when in a world.
+            Entity* pGameMenu =
+                pGUI->GetEntityByName("WorldSpecificGUI")->GetEntityByName("GameMenu");
+            if (pGameMenu != nullptr)
             {
-                Entity* pGUI = real::GetApp()->m_entityRoot->GetEntityByName("GUI");
-                // We don't want the key presses to happen when we can't even see our quickbar.
-                if (pGUI->GetEntityByName("OptionsMenu") ||
-                    pGUI->GetEntityByName("ResolutionMenu") || pGUI->GetEntityByName("OptionsPage"))
+                // When GameMenu is constructed, so is the inventory.
+                // We fake a "touch" event on a quickbar Tool to do the item switch cleanly.
+                if (keyCode == 48 && m_bStartFrom0)
+                    keyCode = 58;
+                int ToolIndex = keyCode - (m_bStartFrom0 ? 49 : 48);
+                Entity* pTool = pGameMenu->GetEntityByName("ItemsParent")
+                                    ->GetEntityByName("ToolSelectMenu")
+                                    ->GetEntityByName("Tool" + std::to_string(ToolIndex));
+                if (!pTool)
                     return;
-                // GUI -> WorldSpecificGUI always exists. GameMenu only does when in a world.
-                Entity* pGameMenu =
-                    pGUI->GetEntityByName("WorldSpecificGUI")->GetEntityByName("GameMenu");
-                if (pGameMenu != nullptr)
-                {
-                    // When GameMenu is constructed, so is the inventory.
-                    // We fake a "touch" event on a quickbar Tool to do the item switch cleanly.
-                    int ToolIndex = keyCode - m_toolSelect0;
-                    EntityComponent* pToolSelect =
-                        pGameMenu->GetEntityByName("ItemsParent")
-                            ->GetEntityByName("ToolSelectMenu")
-                            ->GetEntityByName("Tool" + std::to_string(ToolIndex))
-                            ->GetComponentByName("ToolSelect");
-                    real::ToolSelectComponentOnTouchStart(pToolSelect);
-                }
+                EntityComponent* pToolSelect = pTool->GetComponentByName("ToolSelect");
+                real::ToolSelectComponentOnTouchStart(pToolSelect);
             }
-            return;
         }
     }
 
-    static void AddCustomKeybinds()
-    {
-        // Map our custom keybinds for switching between quickbar slots.
-        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_ToolSelect1", 49, m_toolSelect1, 0,
-                            0);
-        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_ToolSelect2", 50, m_toolSelect2, 0,
-                            0);
-        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_ToolSelect3", 51, m_toolSelect3, 0,
-                            0);
-        // Also the numpad keys with 0 resetting to Fist/Wrench.
-        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect0", 96, m_toolSelect0,
-                            0, 0);
-        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect1", 97, m_toolSelect1,
-                            0, 0);
-        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect2", 98, m_toolSelect2,
-                            0, 0);
-        real::AddKeyBinding(real::GetArcadeComponent(), "chatkey_NmpToolSelect3", 99, m_toolSelect3,
-                            0, 0);
-    }
-
   private:
-    static int m_toolSelect0;
-    static int m_toolSelect1;
-    static int m_toolSelect2;
-    static int m_toolSelect3;
+    static bool m_bStartFrom0;
 };
-int QuickbarHotkeys::m_toolSelect0;
-int QuickbarHotkeys::m_toolSelect1;
-int QuickbarHotkeys::m_toolSelect2;
-int QuickbarHotkeys::m_toolSelect3;
+bool QuickbarHotkeys::m_bStartFrom0 = true;
 REGISTER_USER_GAME_PATCH(QuickbarHotkeys, quickbar_hotkey_patch);
 
 class QuickToggleSpaceToPunch : public patch::BasePatch
@@ -331,3 +317,21 @@ class QuickDropPatch : public patch::BasePatch
 bool QuickDropPatch::m_isEnabled = false;
 int QuickDropPatch::m_keycode;
 REGISTER_USER_GAME_PATCH(QuickDropPatch, quick_drop);
+
+class AllowDialogInput : public patch::BasePatch
+{
+  public:
+    void apply() const override
+    {
+        auto& game = game::GameHarness::get();
+
+        // Patch out dialog check in NetControllerLocal::OnArcadeInput
+        auto p = game.findMemoryPattern<uint8_t*>("74 19 48 8B 07 48 8B CF 48 8B 5C 24 30");
+        utils::fillMemory(p, 1, 0xEB);
+
+        // Similarly patch out the StopAllKeys call in GenericDialogMenuCreate
+        p = game.findMemoryPattern<uint8_t*>("FF 50 18 F3 0F 10 ? ? ? ? ? E8 ? ? ? ? 0F 28 F0");
+        utils::nopMemory(p, 3);
+    }
+};
+REGISTER_USER_GAME_PATCH(AllowDialogInput, allow_dialog_input);
